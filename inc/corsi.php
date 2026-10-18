@@ -95,8 +95,8 @@ function wvi_corsi_normalizza( $testo ) {
 }
 
 /**
- * Corrispondenza corso → tab letta dal tab di configurazione del foglio (azione "mappa" dello script),
- * tenuta 5 minuti.
+ * Corrispondenza corso → tab letta dal tab di configurazione del foglio (azione "mappa" dello script).
+ * La lettura resta un giorno, con l'ora: il pannello la mostra senza chiamare Google a ogni apertura.
  *
  * @param bool $fresca Rilegge dal foglio anche se c'è una copia recente.
  * @return array|WP_Error array( 'mappa' => corso => tab, 'tab' => tab esistenti ).
@@ -116,9 +116,20 @@ function wvi_corsi_mappa( $fresca = false ) {
 	$mappa = array(
 		'mappa' => array_map( 'strval', (array) $json['mappa'] ),
 		'tab'   => array_map( 'strval', (array) ( $json['tab'] ?? array() ) ),
+		'letta' => time(),
 	);
-	set_transient( 'wvi_corsi_mappa', $mappa, 5 * MINUTE_IN_SECONDS );
+	set_transient( 'wvi_corsi_mappa', $mappa, DAY_IN_SECONDS );
 	return $mappa;
+}
+
+/**
+ * Ultima lettura della corrispondenza corso → tab, senza chiamare il foglio; null se non c'è.
+ *
+ * @return array|null
+ */
+function wvi_corsi_mappa_copia() {
+	$copia = get_transient( 'wvi_corsi_mappa' );
+	return is_array( $copia ) && isset( $copia['mappa'], $copia['letta'] ) ? $copia : null;
 }
 
 /**

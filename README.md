@@ -45,14 +45,21 @@ Codice e commenti in italiano, prefisso `wvi_`. Struttura:
 ```
 wvoce-iscrizioni.php   intestazione, caricamento dei moduli, disattivazione
 uninstall.php          eliminazione: impostazioni, stato e giro programmato
-inc/impostazioni.php   impostazioni generali e dei collegamenti, testi con segnaposto, importazione
+inc/schema.php         schema delle impostazioni: ogni campo del pannello descritto una volta (tipo, etichetta, predefinito)
+inc/impostazioni.php   impostazioni generali e dei collegamenti, pulizia e salvataggio secondo lo schema, importazione
 inc/campi.php          valori dei campi Forminator, struttura dei moduli, codice fiscale
 inc/archivio.php       query mirate sulle tabelle di Forminator: ricerca del codice fiscale, iscrizioni da inviare
 inc/soci.php           anno sociale, iscrizioni di una persona, righe del foglio dei soci
 inc/corsi.php          corsi scelti, righe del foglio dei corsi, corrispondenza corso → tab
 inc/fogli.php          invio ai fogli: punto raggiunto, sospese, chiamate all'app web, cron
 inc/moduli.php         regole, passaggio ai corsi, "Recupera i tuoi dati", script e stile sul sito
-inc/admin.php          pannello Strumenti → Iscrizioni
-assets/                script e stile delle parti aggiunte ai moduli (colori nelle variabili --wvi-*)
+inc/admin/pannello.php pannello Strumenti → Iscrizioni: menu, schede, avvisi, guscio della pagina
+inc/admin/azioni.php   pulsanti del pannello: ogni azione è una funzione che restituisce i messaggi
+inc/admin/componenti.php  campi e tabelle generati dallo schema, elenco dei campi di un modulo
+inc/admin/scheda-*.php una scheda per file: collegamenti, campi, funzioni, invio, script
+assets/                script e stile delle parti aggiunte ai moduli (colori nelle variabili --wvi-*);
+                       admin.js e admin.css solo per il pannello
 apps-script/           script per i fogli dei soci e dei corsi
 ```
+
+Per aggiungere un'impostazione basta una voce in `wvi_schema()`: compare nella sua scheda, ha il suo predefinito e si salva con la pulizia del suo tipo. I test controllano lo schema e salvano ogni modulo del pannello così come viene disegnato, verificando che nulla cambi.

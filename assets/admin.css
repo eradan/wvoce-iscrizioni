@@ -1,0 +1,12 @@
+/* wvoce-iscrizioni, pannello Strumenti → Iscrizioni */
+.wvi-schede { margin-bottom: 1em; }
+.wvi-largo { max-width: 820px; }
+.wvi-medio { max-width: 720px; }
+.wvi-staccato { margin-top: 1.5em; }
+.wvi-titolo { margin-top: 1.5em; }
+.wvi-nota { font-weight: normal; font-size: 13px; }
+.wvi-separatore { margin: 2em 0; }
+.wvi-punti { list-style: disc; padding-left: 1.5em; }
+.wvi-campi-modulo { margin: 0.5em 0 1em; }
+.wvi-copiato { margin-left: 0.5em; }
+.wvi-script { font-size: 12px; }

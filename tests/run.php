@@ -159,6 +159,29 @@ function add_query_arg( $key, $value, $url ) {
 	return $url . ( false === strpos( $url, '?' ) ? '?' : '&' ) . $key . '=' . $value;
 }
 
+function esc_html( $text ) {
+	return htmlspecialchars( (string) $text, ENT_QUOTES, 'UTF-8' );
+}
+function esc_attr( $text ) {
+	return htmlspecialchars( (string) $text, ENT_QUOTES, 'UTF-8' );
+}
+function esc_textarea( $text ) {
+	return htmlspecialchars( (string) $text, ENT_QUOTES, 'UTF-8' );
+}
+function esc_url( $url ) {
+	return htmlspecialchars( (string) $url, ENT_QUOTES, 'UTF-8' );
+}
+function checked( $a, $b = true, $stampa = true ) {
+	return (string) $a === (string) $b ? ' checked=\'checked\'' : '';
+}
+function selected( $a, $b = true, $stampa = true ) {
+	return (string) $a === (string) $b ? ' selected=\'selected\'' : '';
+}
+function delete_transient( $name ) {
+	global $wvi_opzioni;
+	unset( $wvi_opzioni[ "_transient_{$name}" ] );
+}
+
 /**
  * Finto Forminator: iscrizioni e campi dei moduli.
  */
@@ -181,6 +204,7 @@ class Forminator_API {
 	}
 }
 
+require WVI_DIR . 'inc/schema.php';
 require WVI_DIR . 'inc/impostazioni.php';
 require WVI_DIR . 'inc/campi.php';
 require WVI_DIR . 'inc/archivio.php';
@@ -188,7 +212,7 @@ require WVI_DIR . 'inc/soci.php';
 require WVI_DIR . 'inc/corsi.php';
 require WVI_DIR . 'inc/fogli.php';
 require WVI_DIR . 'inc/moduli.php';
-require WVI_DIR . 'inc/admin.php';
+require WVI_DIR . 'inc/admin/pannello.php';
 
 /**
  * Configurazione di prova, come la salverebbe il pannello.
@@ -446,52 +470,43 @@ uguale( 'Predefiniti: anno solare, email dell\'amministratore', array( 1, 'admin
 uguale( 'Opzioni del plugin', array( 'wvi_soci_impostazioni', 'wvi_soci_ultimo', 'wvi_soci_stato', '' ), array( $c['impostazioni'], $c['ultimo'], $c['stato'], $c['inizio'] ) );
 uguale( 'Collegamento senza modulo: spento', false, wvi_configurato( 'soci' ) );
 
-$avvisi = wvi_salva_collegamento( 'soci', array( 'url' => 'https://script.google.com/macros/s/abc/exec', 'token' => ' segreto ', 'form' => '274', 'dal' => '2026-09-15' ) );
+$avvisi = wvi_salva( 'soci', 'collegamenti', array( 'url' => 'https://script.google.com/macros/s/abc/exec', 'token' => ' segreto ', 'form' => '274', 'dal' => '2026-09-15' ) );
 $c      = wvi_config( 'soci' );
 uguale( 'Salvataggio: nessun avviso', array(), $avvisi );
 uguale( 'Salvataggio: valori', array( 'https://script.google.com/macros/s/abc/exec', 'segreto', 274, '2026-09-15' ), array( $c['url'], $c['token'], $c['form'], $c['dal'] ) );
 $wvi_opzioni['wvi_soci_ultimo'] = 50;
-$avvisi                         = wvi_salva_collegamento( 'soci', array( 'url' => 'https://esempio.it/x', 'token' => '', 'form' => '274', 'dal' => '15/09/2026' ) );
+$avvisi                         = wvi_salva( 'soci', 'collegamenti', array( 'url' => 'https://esempio.it/x', 'token' => '', 'form' => '274', 'dal' => '15/09/2026' ) );
 $c                              = wvi_config( 'soci' );
 uguale( 'Salvataggio: codice vuoto e data non valida, restano i precedenti', array( 'segreto', '2026-09-15' ), array( $c['token'], $c['dal'] ) );
 uguale( 'Salvataggio: due avvisi, punto raggiunto intatto', array( 2, 50 ), array( count( $avvisi ), $wvi_opzioni['wvi_soci_ultimo'] ) );
-wvi_salva_collegamento( 'soci', array( 'url' => '', 'form' => '300', 'dal' => '' ) );
+wvi_salva( 'soci', 'collegamenti', array( 'url' => '', 'form' => '300', 'dal' => '' ) );
 uguale( 'Salvataggio: modulo cambiato, si riparte; indirizzo vuoto, spento', array( false, false ), array( isset( $wvi_opzioni['wvi_soci_ultimo'] ), wvi_configurato( 'soci' ) ) );
 
-wvi_salva_regole(
-	'soci',
-	array(
-		'campo_cf'       => 'text-1',
-		'tab_prefisso'   => 'Tessere ',
-		'colonne'        => "Nome = name-1\nCittà = address-1.city\nAssicurazione =\nsenza uguale\n = vuoto",
-		'_caselle'       => array( 'recupera', 'unico' ),
-		'recupera'       => '1',
-		'recupera_campi' => "name-1, address-1.city\nemail-1",
-		'recupera_anni'  => '0',
-		'msg_doppio'     => 'Già socio {anno}',
-	)
-);
+wvi_salva( 'soci', 'campi', array( 'campo_cf' => 'text-1', 'controlla' => '1', 'tab_prefisso' => 'Tessere ', 'colonne' => "Nome = name-1\nCittà = address-1.city\nAssicurazione =\nsenza uguale\n = vuoto", 'msg_doppio' => 'Già socio {anno}' ) );
+wvi_salva( 'soci', 'funzioni', array( 'recupera' => '1', 'recupera_campi' => "name-1, address-1.city\nemail-1", 'recupera_anni' => '0' ) );
 $c = wvi_config( 'soci' );
 uguale( 'Regole: colonne dal testo del pannello', array( 'Nome' => 'name-1', 'Città' => array( 'address-1', 'city' ), 'Assicurazione' => '' ), $c['colonne'] );
 uguale( 'Regole: colonne di nuovo in testo', "Nome = name-1\nCittà = address-1.city\nAssicurazione = ", wvi_colonne_in_testo( $c['colonne'] ) );
 uguale( 'Regole: elenco, numeri almeno 1, prefisso con lo spazio', array( array( 'name-1', 'address-1.city', 'email-1' ), 1, 'Tessere ' ), array( $c['recupera_campi'], $c['recupera_anni'], $c['tab_prefisso'] ) );
-uguale( 'Regole: casella non spuntata vuol dire spenta', array( true, false ), array( $c['recupera'], $c['unico'] ) );
-uguale( 'Regole: collegamento intatto', 300, $c['form'] );
-// Ogni scheda salva solo le sue caselle: le altre restano com'erano
-wvi_salva_regole( 'soci', array( '_caselle' => array( 'controlla', 'unico' ), 'controlla' => '1', 'unico' => '1', 'campo_cf' => 'text-1' ) );
+uguale( 'Regole: casella della scheda non spuntata vuol dire spenta', array( true, false, true ), array( $c['recupera'], $c['unico'], $c['controlla'] ) );
+uguale( 'Regole: collegamento intatto', array( 300, '' ), array( $c['form'], $c['url'] ) );
+// Ogni scheda salva solo le sue voci: le caselle delle altre restano com'erano
+wvi_salva( 'soci', 'campi', array( 'controlla' => '1', 'unico' => '1', 'campo_cf' => 'text-1' ) );
 uguale( 'Regole: salvare "Campi e regole" non spegne "Recupera i tuoi dati"', array( true, true, true ), array( wvi_config( 'soci' )['recupera'], wvi_config( 'soci' )['unico'], wvi_config( 'soci' )['controlla'] ) );
-wvi_salva_regole( 'soci', array( '_caselle' => array( 'recupera' ), 'recupera' => '1', 'recupera_invito' => 'Già stato socio? <a>Recupera i tuoi dati</a>' ) );
+wvi_salva( 'soci', 'funzioni', array( 'recupera' => '1', 'recupera_invito' => 'Già stato socio? <a>Recupera i tuoi dati</a>' ) );
 uguale( 'Regole: salvare "Passaggio e recupero" non spegne i controlli', array( true, true, true ), array( wvi_config( 'soci' )['recupera'], wvi_config( 'soci' )['unico'], wvi_config( 'soci' )['controlla'] ) );
-wvi_salva_regole( 'soci', array( '_caselle' => array( 'recupera' ) ) );
-uguale( 'Regole: casella nel modulo e non spuntata, spenta', false, wvi_config( 'soci' )['recupera'] );
-wvi_salva_generali( array( 'mese_inizio' => '9', 'email' => 'non-valida', 'pagina_soci' => 'https://esempio.it/soci/', 'col_rif' => '', 'autocomplete' => "name-1 = given-name\nname-2=family-name\nsenza" ) );
-wvi_salva_generali( array( 'mese_inizio' => '9', 'email' => 'admin@esempio.it', 'pagina_soci' => 'https://esempio.it/soci/', 'col_rif' => 'Rif.', '_caselle' => array( 'proxy' ), 'proxy' => '1' ) );
-uguale( 'Generali: salvare la scheda Collegamenti non cancella la compilazione automatica', array( 'name-1' => 'given-name', 'name-2' => 'family-name' ), wvi_generali()['autocomplete'] );
-wvi_salva_generali( array( 'autocomplete' => "name-1 = given-name\nname-2=family-name" ) );
-uguale( 'Generali: salvare la compilazione automatica non spegne il proxy né cambia la pagina', array( true, 'https://esempio.it/soci/' ), array( wvi_generali()['proxy'], wvi_generali()['pagina_soci'] ) );
+wvi_salva( 'soci', 'campi', array( 'campo_cf' => 'text-1', 'controlla' => '1', 'unico' => '1', 'tab_prefisso' => 'Tessere ' ) );
+wvi_salva( 'soci', 'funzioni', array( 'recupera' => '1', 'tab_prefisso' => 'Altro ' ) );
+uguale( 'Regole: una voce di un\'altra scheda inviata per errore non passa', 'Tessere ', wvi_config( 'soci' )['tab_prefisso'] );
+$avvisi = wvi_salva( 'generali', 'collegamenti', array( 'mese_inizio' => '9', 'email' => 'non-valida', 'msg_cf' => 'CF sbagliato', 'pagina_soci' => 'https://esempio.it/soci/', 'col_rif' => '', 'proxy' => '1' ) );
+wvi_salva( 'generali', 'funzioni', array( 'autocomplete' => "name-1 = given-name\nname-2=family-name\nsenza" ) );
 $g = wvi_generali();
-uguale( 'Generali: mese, email non valida sostituita, riferimenti predefiniti', array( 9, 'admin@esempio.it', 'Rif.' ), array( $g['mese_inizio'], $g['email'], $g['col_rif'] ) );
+uguale( 'Generali: mese, email non valida sostituita, riferimenti obbligatori con avviso', array( 9, 'admin@esempio.it', 'Rif.', 1 ), array( $g['mese_inizio'], $g['email'], $g['col_rif'], count( $avvisi ) ) );
 uguale( 'Generali: compilazione automatica', array( 'name-1' => 'given-name', 'name-2' => 'family-name' ), $g['autocomplete'] );
+wvi_salva( 'generali', 'collegamenti', array( 'mese_inizio' => '9', 'email' => 'admin@esempio.it', 'msg_cf' => 'CF sbagliato', 'pagina_soci' => 'https://esempio.it/soci/', 'col_rif' => 'Rif.', 'proxy' => '1' ) );
+uguale( 'Generali: salvare la scheda Collegamenti non cancella la compilazione automatica', array( 'name-1' => 'given-name', 'name-2' => 'family-name' ), wvi_generali()['autocomplete'] );
+wvi_salva( 'generali', 'funzioni', array( 'autocomplete' => "name-1 = given-name\nname-2=family-name" ) );
+uguale( 'Generali: salvare la compilazione automatica non spegne il proxy né cambia la pagina', array( true, 'https://esempio.it/soci/' ), array( wvi_generali()['proxy'], wvi_generali()['pagina_soci'] ) );
 uguale( 'Testo con i segnaposto', 'VivaVoce: 2026 a admin@esempio.it, https://esempio.it/soci/', wvi_testo( '{associazione}: {anno} a {email}, {link_soci}', array( 'anno' => 2026 ) ) );
 
 wvi_importa(
@@ -574,11 +589,11 @@ uguale( 'Numero più alto, spam e abbandonate comprese', 14, wvi_ultimo_id( 274 
 
 $wvi_opzioni = array( 'admin_email' => 'a@esempio.it' );
 Forminator_API::$entries = array( $wvi_iscr( 3, '2026-09-01 10:00:00' ), $wvi_iscr( 5, '2026-09-02 10:00:00' ) );
-wvi_salva_collegamento( 'corsi', array( 'url' => 'https://script.google.com/macros/s/abc/exec', 'token' => 't', 'form' => '1617', '_caselle' => array( 'dalle_nuove' ), 'dalle_nuove' => '1' ) );
+wvi_salva( 'corsi', 'collegamenti', array( 'url' => 'https://script.google.com/macros/s/abc/exec', 'token' => 't', 'form' => '1617', 'dalle_nuove' => '1' ) );
 uguale( 'Prima configurazione con "solo le nuove": partenza dall\'ultima già presente', array( 5, array() ), array( wvi_ultimo( 'corsi' ), wvi_iscrizioni( 'corsi' )['da_inviare'] ) );
-wvi_salva_collegamento( 'corsi', array( 'url' => 'https://script.google.com/macros/s/abc/exec', 'token' => '', 'form' => '1800', '_caselle' => array( 'dalle_nuove' ), 'dalle_nuove' => '1' ) );
+wvi_salva( 'corsi', 'collegamenti', array( 'url' => 'https://script.google.com/macros/s/abc/exec', 'token' => '', 'form' => '1800', 'dalle_nuove' => '1' ) );
 uguale( 'Modulo cambiato: si riparte dalla prima del nuovo', 0, wvi_ultimo( 'corsi' ) );
-$wvi_avvisi = wvi_salva_regole( 'corsi', array( 'col_corso' => '', 'colonne' => "Nome = name-1\ncorso = checkbox-1" ) );
+$wvi_avvisi = wvi_salva( 'corsi', 'campi', array( 'col_corso' => '', 'tab_configurazioni' => 'configurazioni', 'tab_riserva' => 'Da smistare', 'colonne' => "Nome = name-1\ncorso = checkbox-1" ) );
 uguale( 'Colonna del corso vuota o ripetuta fra le colonne: corretta con due avvisi', array( 'Corso', array( 'Nome' => 'name-1' ), 2 ), array( wvi_config( 'corsi' )['col_corso'], wvi_config( 'corsi' )['colonne'], count( $wvi_avvisi ) ) );
 Forminator_API::$entries = array();
 
@@ -652,9 +667,9 @@ Forminator_API::$campi = array(
 	array( 'element_id' => 'address-1', 'field_label' => 'Indirizzo', 'type' => 'address' ),
 	array( 'element_id' => 'text-1', 'field_label' => 'CF', 'type' => 'text' ),
 );
-uguale( 'Campi assenti: parti di indirizzo e nomi nella pagina riconosciuti', array( 'nmae-1', 'email-1' ), wvi_admin_assenti( 274, array( 'name-1', 'nmae-1', 'address-1.city', 'address-1-zip', 'text-1', 'email-1', '' ) ) );
+uguale( 'Campi assenti: parti di indirizzo e nomi nella pagina riconosciuti', array( 'nmae-1', 'email-1' ), wvi_campi_assenti( 274, array( 'name-1', 'nmae-1', 'address-1.city', 'address-1-zip', 'text-1', 'email-1', '' ) ) );
 Forminator_API::$campi = array();
-uguale( 'Campi assenti: modulo che non si legge, nessun avviso', array(), wvi_admin_assenti( 274, array( 'qualsiasi' ) ) );
+uguale( 'Campi assenti: modulo che non si legge, nessun avviso', array(), wvi_campi_assenti( 274, array( 'qualsiasi' ) ) );
 wvi_configura();
 
 // Indirizzo del visitatore dietro un proxy
@@ -667,6 +682,139 @@ $wvi_opzioni['wvi_generali']['proxy'] = true;
 $_SERVER['REMOTE_ADDR']               = '151.20.3.4';
 uguale( 'Proxy acceso ma richiesta diretta: intestazioni ignorate', '151.20.3.4', wvi_ip_visitatore() );
 unset( $_SERVER['REMOTE_ADDR'], $_SERVER['HTTP_X_REAL_IP'] );
+
+// Schema delle impostazioni
+$wvi_tipi = array( 'testo', 'prefisso', 'html', 'area', 'casella', 'numero', 'elenco', 'colonne', 'coppie', 'campo', 'modulo', 'url', 'email', 'mese', 'data', 'segreto', 'foglio' );
+$wvi_male = array();
+$wvi_viste = array();
+foreach ( wvi_schema() as $v ) {
+	$chiave = "{$v['dove']}.{$v['chiave']}";
+	$atteso = array(
+		'casella' => 'boolean',
+		'numero'  => 'integer',
+		'mese'    => 'integer',
+		'modulo'  => 'integer',
+		'elenco'  => 'array',
+		'colonne' => 'array',
+		'coppie'  => 'array',
+	)[ $v['tipo'] ] ?? 'string';
+	if ( isset( $wvi_viste[ $chiave ] ) ) {
+		$wvi_male[] = "{$chiave}: ripetuta";
+	}
+	$wvi_viste[ $chiave ] = true;
+	if ( ! in_array( $v['dove'], array( 'generali', 'soci', 'corsi' ), true ) || ! in_array( $v['scheda'], array( 'collegamenti', 'campi', 'funzioni' ), true ) ) {
+		$wvi_male[] = "{$chiave}: opzione o scheda sconosciuta";
+	}
+	if ( ! in_array( $v['tipo'], $wvi_tipi, true ) ) {
+		$wvi_male[] = "{$chiave}: tipo {$v['tipo']} sconosciuto";
+	}
+	if ( '' === trim( $v['etichetta'] ) || ( 'casella' === $v['tipo'] && '' === trim( $v['casella'] ) ) ) {
+		$wvi_male[] = "{$chiave}: senza etichetta";
+	}
+	if ( gettype( $v['predefinito'] ) !== $atteso ) {
+		$wvi_male[] = "{$chiave}: predefinito " . gettype( $v['predefinito'] ) . ", serve {$atteso}";
+	}
+	if ( $v['obbligatorio'] && '' === $v['predefinito'] ) {
+		$wvi_male[] = "{$chiave}: obbligatoria ma vuota";
+	}
+}
+uguale( 'Schema: chiavi uniche, tipi noti, etichette, predefiniti del tipo giusto', array(), $wvi_male );
+uguale( 'Schema: tutte le chiavi delle impostazioni sono nello schema', array(), array_values( array_diff( array_keys( wvi_config( 'soci' ) ), array_keys( wvi_schema_voci( 'soci' ) ), array( 'id', 'titolo', 'script', 'righe', 'impostazioni', 'ultimo', 'sospese', 'stato', 'inizio' ) ) ) );
+
+/**
+ * Valori che il browser invierebbe dal modulo disegnato: caselle solo se spuntate, tendine con
+ * l'opzione scelta (o la prima), password vuote.
+ *
+ * @param string $html HTML del modulo.
+ */
+function wvi_invio_browser( $html ) {
+	$doc = new DOMDocument();
+	libxml_use_internal_errors( true );
+	$doc->loadHTML( '<?xml encoding="utf-8"?><div>' . $html . '</div>' );
+	libxml_clear_errors();
+	$dati = array();
+	$nome = static fn( $el ) => preg_match( '/^wvi\[([a-z_]+)\]$/', $el->getAttribute( 'name' ), $m ) ? $m[1] : null;
+	foreach ( $doc->getElementsByTagName( 'input' ) as $el ) {
+		$k = $nome( $el );
+		if ( null !== $k && ( 'checkbox' !== $el->getAttribute( 'type' ) || $el->hasAttribute( 'checked' ) ) ) {
+			$dati[ $k ] = $el->getAttribute( 'value' );
+		}
+	}
+	foreach ( $doc->getElementsByTagName( 'textarea' ) as $el ) {
+		$k = $nome( $el );
+		if ( null !== $k ) {
+			$dati[ $k ] = $el->textContent;
+		}
+	}
+	foreach ( $doc->getElementsByTagName( 'select' ) as $el ) {
+		$k = $nome( $el );
+		if ( null === $k ) {
+			continue;
+		}
+		$scelta = null;
+		foreach ( $el->getElementsByTagName( 'option' ) as $o ) {
+			if ( null === $scelta || $o->hasAttribute( 'selected' ) ) {
+				$scelta = $o->getAttribute( 'value' );
+				if ( $o->hasAttribute( 'selected' ) ) {
+					break;
+				}
+			}
+		}
+		$dati[ $k ] = $scelta;
+	}
+	return $dati;
+}
+
+// Andata e ritorno di ogni modulo del pannello: disegnato, inviato com'è, salvato, nulla cambia
+foreach ( array( false, true ) as $wvi_con_campi ) {
+	wvi_configura();
+	$wvi_opzioni['wvi_generali']['autocomplete']                  = array( 'name-1' => 'given-name', 'luogo-1' => 'off' );
+	$wvi_opzioni['wvi_soci_impostazioni']['url']                  = 'https://script.google.com/macros/s/abc/exec';
+	$wvi_opzioni['wvi_soci_impostazioni']['token']                = 'segreto-soci';
+	$wvi_opzioni['wvi_soci_impostazioni']['recupera_invito']      = 'Già stato socio? <a>Recupera i tuoi dati</a>';
+	$wvi_opzioni['wvi_corsi_impostazioni']['foglio']              = '1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789';
+	$wvi_opzioni['wvi_corsi_impostazioni']['passaggio_avviso']    = "Due righe\ncon <strong>HTML</strong> & accenti è";
+	Forminator_API::$campi = $wvi_con_campi ? array(
+		array( 'element_id' => 'text-1', 'field_label' => 'CF', 'type' => 'text' ),
+		array( 'element_id' => 'email-1', 'field_label' => 'Email', 'type' => 'email' ),
+	) : array();
+	$wvi_prima = array( wvi_generali(), wvi_config( 'soci' ), wvi_config( 'corsi' ), $wvi_opzioni['wvi_soci_ultimo'] ?? null );
+	$wvi_rotti = array();
+	foreach ( array( 'generali', 'soci', 'corsi' ) as $dove ) {
+		foreach ( array( 'collegamenti', 'campi', 'funzioni' ) as $scheda ) {
+			if ( ! wvi_schema_voci( $dove, $scheda ) ) {
+				continue;
+			}
+			ob_start();
+			wvi_admin_tabella( $dove, $scheda );
+			$avvisi = wvi_salva( $dove, $scheda, wvi_invio_browser( ob_get_clean() ) );
+			if ( $avvisi ) {
+				$wvi_rotti[] = "{$dove}/{$scheda}: " . implode( ' ', $avvisi );
+			}
+		}
+	}
+	$wvi_dopo = array( wvi_generali(), wvi_config( 'soci' ), wvi_config( 'corsi' ), $wvi_opzioni['wvi_soci_ultimo'] ?? null );
+	foreach ( $wvi_prima as $n => $valori ) {
+		foreach ( (array) $valori as $k => $val ) {
+			if ( ( $wvi_dopo[ $n ][ $k ] ?? null ) !== $val ) {
+				$wvi_rotti[] = "{$n}.{$k}: " . var_export( $val, true ) . ' → ' . var_export( $wvi_dopo[ $n ][ $k ] ?? null, true );
+			}
+		}
+	}
+	uguale( 'Pannello: andata e ritorno di tutti i moduli ' . ( $wvi_con_campi ? 'con le tendine dei campi' : 'con i campi di testo' ), array(), $wvi_rotti );
+}
+Forminator_API::$campi = array();
+
+// Azioni del pannello
+wvi_configura();
+$wvi_opzioni['wvi_soci_impostazioni']['url']   = 'https://script.google.com/macros/s/abc/exec';
+$wvi_opzioni['wvi_soci_impostazioni']['token'] = 't';
+$wvi_opzioni['wvi_soci_ultimo']                = 40;
+uguale( 'Azione generali: avviso del campo obbligatorio e conferma', array( array( 'warning', 'Colonna dei riferimenti non può restare vuoto: resta "Rif.".' ), array( 'success', 'Impostazioni generali salvate.' ) ), wvi_azione_generali( '', 'collegamenti', array( 'mese_inizio' => '9', 'msg_cf' => 'x', 'col_rif' => '' ) ) );
+uguale( 'Azione regole: conferma con il titolo', array( array( 'success', 'Soci: impostazioni salvate.' ) ), wvi_azione_regole( 'soci', 'campi', array( 'campo_cf' => 'text-1', 'tab_prefisso' => 'X ', 'col_data' => 'Data', 'colonne' => 'Nome = name-1' ) ) );
+uguale( 'Azione riparti: punto raggiunto azzerato', array( 'success', false ), array( wvi_azione_riparti( 'soci' )[0][0], isset( $wvi_opzioni['wvi_soci_ultimo'] ) ) );
+uguale( 'Azioni su un collegamento spento: niente', array( array(), array() ), array( wvi_azione_riparti( 'corsi' ), wvi_azione_mappa( 'soci' ) ) );
+wvi_configura();
 
 echo $wvi_falliti ? "\n{$wvi_falliti} su {$wvi_totale} controlli falliti.\n" : "{$wvi_totale} controlli superati.\n";
 exit( $wvi_falliti ? 1 : 0 );

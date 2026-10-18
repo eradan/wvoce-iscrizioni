@@ -146,3 +146,31 @@ function wvi_codice_fiscale_valido( $cf ) {
 	}
 	return chr( 65 + $somma % 26 ) === $cf[15];
 }
+
+/**
+ * Campi indicati nelle impostazioni che il modulo non contiene: un errore di battitura darebbe solo una
+ * colonna vuota o un campo non ricompilato. Per le parti di indirizzo conta il campo ("address-1.city",
+ * nella pagina "address-1-city").
+ *
+ * @param int      $form Id del modulo.
+ * @param string[] $voci Campi indicati.
+ * @return string[] Voci senza un campo nel modulo ([] se il modulo non si legge).
+ */
+function wvi_campi_assenti( $form, $voci ) {
+	$ids = array_column( wvi_campi( $form ), 'id' );
+	if ( ! $ids ) {
+		return array();
+	}
+	$assenti = array();
+	foreach ( array_filter( array_map( 'strval', (array) $voci ), 'strlen' ) as $voce ) {
+		$campo = explode( '.', $voce, 2 )[0];
+		$noto  = in_array( $campo, $ids, true );
+		foreach ( $ids as $id ) {
+			$noto = $noto || 0 === strpos( $campo, $id . '-' );
+		}
+		if ( ! $noto ) {
+			$assenti[] = $voce;
+		}
+	}
+	return array_values( array_unique( $assenti ) );
+}

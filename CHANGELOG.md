@@ -1,5 +1,14 @@
 # Note di versione
 
+## Versione 1.2.0: pannello riorganizzato
+
+Stesso pannello, stesse impostazioni: nessun passo da fare dopo l'aggiornamento.
+
+- **Schema unico delle impostazioni** (`inc/schema.php`): ogni campo del pannello è descritto una volta, con tipo, etichetta e valore predefinito. Da lì vengono i predefiniti, i campi delle schede e il salvataggio. Prima gli stessi campi erano elencati in tre posti da tenere allineati a mano, l'origine dell'errore corretto nella 1.0.1. Ogni modulo del pannello salva solo le sue voci, quindi le altre schede restano intatte per costruzione.
+- **Pannello diviso in file piccoli** (`inc/admin/`): pagina e schede, azioni dei pulsanti, componenti, una scheda per file. Script e stile del pannello in `assets/admin.js` e `assets/admin.css`, caricati solo su quella pagina, al posto del codice in linea.
+- **Corrispondenza corso → tab letta su richiesta:** la scheda Invio corsi non chiama più Google a ogni apertura. Mostra l'ultima lettura, con data e ora, valida un giorno, e ha il pulsante per rileggere il tab di configurazione. Senza lettura, la prova a secco raggruppa le righe per corso.
+- **Test:** 152 controlli. In più: coerenza dello schema e "andata e ritorno" di ogni modulo del pannello, cioè disegnato, inviato com'è e salvato senza che cambi nulla, oltre alle azioni dei pulsanti. **Collaudo** su WordPress con Forminator: campi, valori ed etichette di tutte le schede identici alla 1.1.1, configurazione invariata dopo il salvataggio di tutti i moduli, verifica, lettura della mappa e invio con un finto foglio.
+
 ## Versione 1.1.1: invio ai fogli più robusto, ricerca del codice fiscale mirata
 
 - **Ricerca del codice fiscale con una query mirata** (`inc/archivio.php`): le regole sui moduli e "Recupera i tuoi dati" cercano solo le iscrizioni con quel codice, invece di leggere tutte le iscrizioni del modulo con i loro campi. Su una prova con 304 iscrizioni: da 614 query a 6. Anche il giro verso i fogli legge numero e stato delle sole iscrizioni dopo l'ultima inviata, e i campi solo di quelle da inviare.
