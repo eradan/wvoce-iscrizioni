@@ -20,9 +20,6 @@ date_default_timezone_set( 'UTC' ); // Come WordPress.
 
 function add_action() {}
 function add_filter() {}
-function wvi_attivo() {
-	return true;
-}
 $wvi_opzioni = array();
 function get_option( $name, $default = false ) {
 	global $wvi_opzioni;
@@ -44,6 +41,14 @@ function wp_strip_all_tags( $text ) {
 }
 function wp_unslash( $text ) {
 	return $text;
+}
+$wvi_singolare = true;
+function is_singular() {
+	global $wvi_singolare;
+	return $wvi_singolare;
+}
+function plugin_basename( $file ) {
+	return 'wvoce-iscrizioni/' . basename( $file );
 }
 function wp_kses_post( $text ) {
 	return (string) $text;
@@ -174,6 +179,7 @@ require WVI_DIR . 'inc/soci.php';
 require WVI_DIR . 'inc/corsi.php';
 require WVI_DIR . 'inc/fogli.php';
 require WVI_DIR . 'inc/moduli.php';
+require WVI_DIR . 'inc/admin.php';
 
 /**
  * Configurazione di prova, come la salverebbe il pannello.
@@ -585,6 +591,24 @@ $wvi_admin = false;
 $wvi_opzioni['wvi_soci_impostazioni']['recupera'] = false;
 uguale( 'Recupera spento: nessuna ricerca', 'spento', wvi_recupera_richiesta( 'BNCLRA90A41G702N', '9.9.9.9', $wvi_adesso ) );
 Forminator_API::$entries = array();
+
+// Messaggio sul codice fiscale dal pannello, pagine con un modulo, campi indicati ma assenti dal modulo
+wvi_configura();
+$wvi_opzioni['wvi_generali']['msg_cf'] = 'Codice fiscale non valido.';
+uguale( 'Messaggio sul CF dal pannello: invio e recupero', array( array( array( 'text-1' => 'Codice fiscale non valido.' ) ), 'Codice fiscale non valido.' ), array( wvi_controlla_invio( array(), 1617, array( array( 'name' => 'text-1', 'value' => 'X' ) ) ), wvi_recupera_messaggio( 'formato' ) ) );
+uguale( 'Pagina con lo shortcode, con il blocco, senza modulo', array( true, true, false ), array( wvi_pagina_con_modulo( (object) array( 'post_content' => '[forminator_form id="274"]' ) ), wvi_pagina_con_modulo( (object) array( 'post_content' => '<!-- wp:forminator/forms {"module_id":"274"} /-->' ) ), wvi_pagina_con_modulo( (object) array( 'post_content' => 'Ciao' ) ) ) );
+$wvi_singolare = false;
+uguale( 'Archivio: niente script anche con il modulo', false, wvi_pagina_con_modulo( (object) array( 'post_content' => '[forminator_form id="274"]' ) ) );
+$wvi_singolare = true;
+Forminator_API::$campi = array(
+	array( 'element_id' => 'name-1', 'field_label' => 'Nome', 'type' => 'name' ),
+	array( 'element_id' => 'address-1', 'field_label' => 'Indirizzo', 'type' => 'address' ),
+	array( 'element_id' => 'text-1', 'field_label' => 'CF', 'type' => 'text' ),
+);
+uguale( 'Campi assenti: parti di indirizzo e nomi nella pagina riconosciuti', array( 'nmae-1', 'email-1' ), wvi_admin_assenti( 274, array( 'name-1', 'nmae-1', 'address-1.city', 'address-1-zip', 'text-1', 'email-1', '' ) ) );
+Forminator_API::$campi = array();
+uguale( 'Campi assenti: modulo che non si legge, nessun avviso', array(), wvi_admin_assenti( 274, array( 'qualsiasi' ) ) );
+wvi_configura();
 
 // Indirizzo del visitatore dietro un proxy
 $_SERVER['REMOTE_ADDR']    = '172.18.0.2';

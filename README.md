@@ -44,6 +44,7 @@ Codice e commenti in italiano, prefisso `wvi_`. Struttura:
 
 ```
 wvoce-iscrizioni.php   intestazione, caricamento dei moduli, disattivazione
+uninstall.php          eliminazione: impostazioni, stato e giro programmato
 inc/impostazioni.php   impostazioni generali e dei collegamenti, testi con segnaposto, importazione
 inc/campi.php          valori dei campi Forminator, struttura dei moduli, codice fiscale
 inc/soci.php           anno sociale, iscrizioni di una persona, righe del foglio dei soci
@@ -54,5 +55,3 @@ inc/admin.php          pannello Strumenti → Iscrizioni
 assets/                script e stile delle parti aggiunte ai moduli (colori nelle variabili --wvi-*)
 apps-script/           script per i fogli dei soci e dei corsi
 ```
-
-Un tema che gestisce già da sé le stesse cose (il tema VivaVoce prima della 1.0.0) disattiva il plugin: `wvi_attivo()` lo riconosce dalla funzione `vv_forminator_check_cf` e il pannello lo segnala.

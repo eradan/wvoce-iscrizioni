@@ -168,9 +168,6 @@ function wvi_admin_pagina() {
 	?>
 	<div class="wrap">
 		<h1>Iscrizioni</h1>
-		<?php if ( ! wvi_attivo() ) : ?>
-			<div class="notice notice-error inline"><p>Il tema attivo gestisce ancora da sé le iscrizioni (codice fiscale, fogli, "Recupera i tuoi dati"): finché resta così il plugin non interviene sui moduli e non invia ai fogli. Aggiorna il tema alla versione senza queste funzioni.</p></div>
-		<?php endif; ?>
 		<?php if ( ! class_exists( 'Forminator_API' ) ) : ?>
 			<div class="notice notice-error inline"><p>Forminator non è attivo: il plugin lavora sui suoi moduli.</p></div>
 		<?php endif; ?>
@@ -288,6 +285,48 @@ function wvi_admin_campo( $nome, $valore, $campi ) {
 }
 
 /**
+ * Campi indicati nel pannello che il modulo non contiene: un errore di battitura darebbe solo una
+ * colonna vuota o un campo non ricompilato. Per le parti di indirizzo conta il campo
+ * ("address-1.city", nella pagina "address-1-city").
+ *
+ * @param int      $form Id del modulo.
+ * @param string[] $voci Campi indicati.
+ * @return string[] Voci senza un campo nel modulo ([] se il modulo non si legge).
+ */
+function wvi_admin_assenti( $form, $voci ) {
+	$ids = array_column( wvi_campi( $form ), 'id' );
+	if ( ! $ids ) {
+		return array();
+	}
+	$assenti = array();
+	foreach ( array_filter( array_map( 'strval', $voci ), 'strlen' ) as $voce ) {
+		$campo = wvi_campo_parte( $voce )[0];
+		$noto  = in_array( $campo, $ids, true );
+		foreach ( $ids as $id ) {
+			$noto = $noto || 0 === strpos( $campo, $id . '-' );
+		}
+		if ( ! $noto ) {
+			$assenti[] = $voce;
+		}
+	}
+	return array_values( array_unique( $assenti ) );
+}
+
+/**
+ * Avviso con i campi indicati che il modulo non contiene.
+ *
+ * @param int      $form   Id del modulo.
+ * @param string[] $voci   Campi indicati.
+ * @param string   $doveli Dove sono indicati (per il messaggio).
+ */
+function wvi_admin_avviso_assenti( $form, $voci, $doveli ) {
+	$assenti = wvi_admin_assenti( $form, $voci );
+	if ( $assenti ) {
+		printf( '<div class="notice notice-warning inline"><p>%s: il modulo n. %d non ha questi campi: <code>%s</code>. Controlla gli id nell\'elenco dei campi del modulo.</p></div>', esc_html( $doveli ), (int) $form, esc_html( implode( ', ', $assenti ) ) );
+	}
+}
+
+/**
  * Elenco dei campi di un modulo, per scrivere colonne ed elenchi.
  *
  * @param int $form Id del modulo.
@@ -344,6 +383,7 @@ function wvi_admin_collegamenti() {
 		wvi_admin_riga( 'Pagina del modulo dei soci', sprintf( '<input type="url" class="large-text" name="wvi[pagina_soci]" value="%s">', esc_attr( $g['pagina_soci'] ) ), 'Indirizzo della pagina con il modulo dei soci: link nei messaggi e nell\'email di "Recupera i tuoi dati".' );
 		wvi_admin_riga( 'Pagina del modulo dei corsi', sprintf( '<input type="url" class="large-text" name="wvi[pagina_corsi]" value="%s">', esc_attr( $g['pagina_corsi'] ) ), 'Per il passaggio dal modulo dei soci a quello dei corsi.' );
 		wvi_admin_riga( 'Email di contatto', sprintf( '<input type="email" class="regular-text" name="wvi[email]" value="%s">', esc_attr( $g['email'] ) ), 'Segnaposto <code>{email}</code> nei messaggi e nelle email.' );
+		wvi_admin_riga( 'Messaggio: codice fiscale sbagliato', wvi_admin_testo( 'msg_cf', $g['msg_cf'], 'large-text' ), 'Accanto al campo, all\'uscita dal campo e all\'invio, in tutti i moduli.' );
 		wvi_admin_riga( 'Colonna dei riferimenti', wvi_admin_testo( 'col_rif', $g['col_rif'], 'small-text' ), 'Intestazione della colonna con il numero dell\'iscrizione ("F274-12"), contro i doppioni. Di solito <code>Rif.</code>.' );
 		wvi_admin_riga( 'Sito dietro un proxy', wvi_admin_casella( 'proxy', $g['proxy'], 'Le richieste arrivano da un proxy (nginx, Docker): l\'indirizzo del visitatore è in X-Real-IP o X-Forwarded-For' ), 'Serve per il limite di richieste di "Recupera i tuoi dati". Senza proxy lasciare spento: le intestazioni si potrebbero falsificare.' );
 		?>
@@ -425,6 +465,11 @@ function wvi_admin_campi() {
 			<?php
 			continue;
 		endif;
+		$voci = array( $c['campo_cf'], 'soci' === $id ? $c['campo_email'] : $c['campo_corsi'] );
+		foreach ( (array) $c['colonne'] as $campo ) {
+			$voci[] = is_array( $campo ) ? (string) $campo[0] : (string) $campo;
+		}
+		wvi_admin_avviso_assenti( $c['form'], $voci, 'Campi e colonne' );
 		wvi_admin_elenco_campi( $c['form'] );
 		?>
 		<table class="form-table" role="presentation">
@@ -475,6 +520,12 @@ function wvi_admin_funzioni() {
 		wvi_admin_riga( 'Avviso sopra il modulo', wvi_admin_area( 'passaggio_avviso', $corsi['passaggio_avviso'], 2 ) );
 		?>
 	</table>
+	<?php
+	if ( $corsi['passaggio'] ) {
+		wvi_admin_avviso_assenti( $soci['form'], $corsi['passaggio_campi'], 'Campi da riportare, nel modulo dei soci' );
+		wvi_admin_avviso_assenti( $corsi['form'], array_merge( $corsi['passaggio_campi'], $corsi['passaggio_caselle'] ), 'Campi e caselle da riportare, nel modulo dei corsi' );
+	}
+	?>
 	<?php wvi_admin_elenco_campi( $corsi['form'] ); ?>
 	<p><button class="button button-primary" name="wvi_azione" value="regole">Salva</button></p>
 	</form>
@@ -499,6 +550,11 @@ function wvi_admin_funzioni() {
 		wvi_admin_riga( 'Email "già iscritto": testo', wvi_admin_area( 'recupera_gia_testo', $soci['recupera_gia_testo'], 7 ), 'Segnaposto: <code>{anno}</code>, <code>{associazione}</code>, <code>{email}</code>.' );
 		?>
 	</table>
+	<?php
+	if ( $soci['recupera'] ) {
+		wvi_admin_avviso_assenti( $soci['form'], $soci['recupera_campi'], 'Campi da recuperare' );
+	}
+	?>
 	<?php wvi_admin_elenco_campi( $soci['form'] ); ?>
 	<p><button class="button button-primary" name="wvi_azione" value="regole">Salva</button></p>
 	</form>

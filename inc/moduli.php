@@ -22,7 +22,7 @@ defined( 'ABSPATH' ) || exit;
  * @param array $field_data_array Campi inviati: array( 'name' => id del campo, 'value' => valore ).
  */
 function wvi_controlla_invio( $submit_errors, $form_id, $field_data_array ) {
-	if ( ! wvi_attivo() || ! is_array( $field_data_array ) ) {
+	if ( ! is_array( $field_data_array ) ) {
 		return $submit_errors;
 	}
 	foreach ( array_keys( wvi_collegamenti() ) as $id ) {
@@ -42,7 +42,7 @@ function wvi_controlla_invio( $submit_errors, $form_id, $field_data_array ) {
 			$adesso = current_time( 'mysql' );
 			$anno   = wvi_anno_etichetta( wvi_anno_sociale( $adesso ) );
 			if ( $c['controlla'] && ! wvi_codice_fiscale_valido( $value ) ) {
-				$submit_errors[][ $c['campo_cf'] ] = 'Controlla il codice fiscale: sono 16 lettere e numeri, come sulla tessera sanitaria.';
+				$submit_errors[][ $c['campo_cf'] ] = wvi_generali()['msg_cf'];
 			} elseif ( 'corsi' === $id && $c['richiede_socio'] && ! wvi_socio_iscritto( $value, $adesso ) ) {
 				$submit_errors[][ $c['campo_cf'] ] = wvi_testo( $c['msg_socio'], array( 'anno' => $anno ) );
 			} elseif ( 'soci' === $id && $c['unico'] && wvi_socio_iscritto( $value, $adesso ) ) {
@@ -119,7 +119,7 @@ function wvi_passaggio_inviati( $campi = null ) {
  */
 function wvi_passaggio_tieni( $field_data_array, $form_id ) {
 	$corsi = wvi_config( 'corsi' );
-	if ( wvi_attivo() && $corsi['passaggio'] && (int) wvi_config( 'soci' )['form'] === (int) $form_id && is_array( $field_data_array ) ) {
+	if ( $corsi['passaggio'] && (int) wvi_config( 'soci' )['form'] === (int) $form_id && is_array( $field_data_array ) ) {
 		$meta = array();
 		foreach ( $field_data_array as $item ) {
 			if ( is_array( $item ) && isset( $item['name'] ) ) {
@@ -266,7 +266,7 @@ function wvi_ip_visitatore() {
  */
 function wvi_recupera_richiesta( $cf, $ip, $adesso ) {
 	$c = wvi_config( 'soci' );
-	if ( ! wvi_attivo() || ! $c['recupera'] || '' === $c['campo_email'] ) {
+	if ( ! $c['recupera'] || '' === $c['campo_email'] ) {
 		return 'spento';
 	}
 	if ( ! wvi_codice_fiscale_valido( $cf ) ) {
@@ -342,7 +342,7 @@ function wvi_recupera_messaggio( $esito ) {
 		return 'Solo per gli amministratori: ' . wvi_recupera_esiti()[ $esito ];
 	}
 	if ( 'formato' === $esito ) {
-		return 'Controlla il codice fiscale: sono 16 lettere e numeri, come sulla tessera sanitaria.';
+		return wvi_generali()['msg_cf'];
 	}
 	if ( 'troppe' === $esito ) {
 		return 'Troppe richieste da questa connessione: riprova fra un\'ora, oppure compila il modulo per intero.';
@@ -405,9 +405,6 @@ function wvi_recupera_dati( $codice ) {
  * trattino nella colonna dei riferimenti del foglio): stessa ricompilazione senza email.
  */
 function wvi_pagina_con_codice() {
-	if ( ! wvi_attivo() ) {
-		return;
-	}
 	// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Il codice fa da gettone; la prova è solo per gli amministratori e non cambia niente.
 	$passaggio = isset( $_GET['wvi'] ) ? wvi_passaggio_dati( sanitize_key( wp_unslash( $_GET['wvi'] ) ) ) : null;
 	$recupera  = isset( $_GET['wvi-socio'] ) ? wvi_recupera_dati( sanitize_key( wp_unslash( $_GET['wvi-socio'] ) ) ) : null;
@@ -434,12 +431,25 @@ function wvi_pagina_con_codice() {
 add_action( 'template_redirect', 'wvi_pagina_con_codice' );
 
 /**
+ * La pagina mostra un modulo Forminator? Sì con lo shortcode ([forminator_form …]) o con il blocco
+ * dell'editor (wp:forminator/…).
+ *
+ * @param WP_Post|null $post Contenuto della pagina.
+ */
+function wvi_pagina_con_modulo( $post ) {
+	if ( ! is_singular() || ! $post ) {
+		return false;
+	}
+	$testo = (string) $post->post_content;
+	return false !== strpos( $testo, '[forminator_form' ) || false !== strpos( $testo, '<!-- wp:forminator/' );
+}
+
+/**
  * Script e stile nelle pagine con un modulo Forminator, con i dati dei moduli: id, campo del codice
  * fiscale, compilazione automatica, indirizzo e testo di "Recupera i tuoi dati".
  */
 function wvi_risorse() {
-	$post = get_post();
-	if ( ! wvi_attivo() || ! is_singular() || ! $post || false === strpos( (string) $post->post_content, '[forminator_form' ) ) {
+	if ( ! wvi_pagina_con_modulo( get_post() ) ) {
 		return;
 	}
 	$soci  = wvi_config( 'soci' );
@@ -459,6 +469,7 @@ function wvi_risorse() {
 	$dati = array(
 		'moduli'       => $moduli,
 		'autocomplete' => (object) wvi_generali()['autocomplete'],
+		'msgCf'        => wvi_generali()['msg_cf'],
 	);
 	if ( $soci['recupera'] && $soci['form'] && '' !== $soci['campo_cf'] ) {
 		$dati['recupera'] = array(

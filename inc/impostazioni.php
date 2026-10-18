@@ -98,6 +98,7 @@ function wvi_generali() {
 			'proxy'        => false,
 			'col_rif'      => 'Rif.',
 			'autocomplete' => array(),
+			'msg_cf'       => 'Controlla il codice fiscale: sono 16 lettere e numeri, come sulla tessera sanitaria.',
 		),
 		$s
 	);
@@ -109,8 +110,13 @@ function wvi_generali() {
  * @param string $id Collegamento (soci, corsi).
  */
 function wvi_config( $id = 'soci' ) {
+	// Si chiama per ogni valore di ogni riga: il risultato si rifà solo se l'opzione è cambiata.
+	static $copie = array();
+	$s            = (array) get_option( "wvi_{$id}_impostazioni", array() );
+	if ( isset( $copie[ $id ] ) && $copie[ $id ][0] === $s ) {
+		return $copie[ $id ][1];
+	}
 	$tipo = (array) ( wvi_collegamenti()[ $id ] ?? array() );
-	$s    = (array) get_option( "wvi_{$id}_impostazioni", array() );
 	$c    = array_merge( wvi_predefiniti( $id ), $s );
 
 	$c['id']           = $id;
@@ -123,6 +129,7 @@ function wvi_config( $id = 'soci' ) {
 	$c['stato']        = "wvi_{$id}_stato";
 	$c['sospese']      = "wvi_{$id}_sospese";
 	$c['inizio']       = $c['dalle_nuove'] ? "wvi_{$id}_inizio" : '';
+	$copie[ $id ]      = array( $s, $c );
 	return $c;
 }
 
@@ -390,6 +397,9 @@ function wvi_salva_generali( $dati ) {
 	if ( isset( $dati['col_rif'] ) ) {
 		$rif              = sanitize_text_field( (string) $dati['col_rif'] );
 		$nuove['col_rif'] = '' !== $rif ? $rif : 'Rif.';
+	}
+	if ( isset( $dati['msg_cf'] ) && '' !== trim( (string) $dati['msg_cf'] ) ) {
+		$nuove['msg_cf'] = sanitize_text_field( (string) $dati['msg_cf'] );
 	}
 	if ( isset( $dati['autocomplete'] ) ) {
 		$nuove['autocomplete'] = wvi_coppie( (string) $dati['autocomplete'] );

@@ -74,7 +74,7 @@
 		}
 		return String.fromCharCode(65 + somma % 26) === cf.charAt(15);
 	};
-	var msgFormato = 'Controlla il codice fiscale: sono 16 lettere e numeri, come sulla tessera sanitaria.';
+	var msgFormato = moduli.msgCf || 'Controlla il codice fiscale.';
 
 	var campoDi = function (input) {
 		return input.closest('.forminator-field') || input.parentNode;
@@ -153,7 +153,7 @@
 					return;
 				}
 				if (!cfValido(cf.value)) {
-					mostra('Scrivi prima il tuo codice fiscale: sono 16 lettere e numeri, come sulla tessera sanitaria.');
+					mostra(msgFormato);
 					cf.focus();
 					return;
 				}

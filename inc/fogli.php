@@ -19,7 +19,7 @@ defined( 'ABSPATH' ) || exit;
  */
 function wvi_configurato( $id = 'soci' ) {
 	$c = wvi_config( $id );
-	return wvi_attivo() && '' !== $c['url'] && '' !== $c['token'] && $c['form'] > 0 && class_exists( 'Forminator_API' );
+	return '' !== $c['url'] && '' !== $c['token'] && $c['form'] > 0 && class_exists( 'Forminator_API' );
 }
 
 /**
