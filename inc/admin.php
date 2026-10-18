@@ -118,7 +118,9 @@ function wvi_admin_azioni() {
 			);
 		}
 	} elseif ( 'regole' === $azione ) {
-		wvi_salva_regole( $id, $dati );
+		foreach ( wvi_salva_regole( $id, $dati ) as $avviso ) {
+			wvi_admin_avviso( 'warning', $avviso );
+		}
 		delete_transient( 'wvi_corsi_mappa' );
 		wvi_admin_avviso( 'success', "{$c['titolo']}: impostazioni salvate." );
 	} elseif ( 'invia' === $azione && wvi_configurato( $id ) ) {

@@ -29,6 +29,14 @@ function update_option( $name, $value ) {
 	global $wvi_opzioni;
 	$wvi_opzioni[ $name ] = $value;
 }
+function add_option( $name, $value = '', $deprecated = '', $autoload = null ) {
+	global $wvi_opzioni;
+	if ( array_key_exists( $name, $wvi_opzioni ) ) {
+		return false;
+	}
+	$wvi_opzioni[ $name ] = $value;
+	return true;
+}
 function delete_option( $name ) {
 	global $wvi_opzioni;
 	unset( $wvi_opzioni[ $name ] );
@@ -175,6 +183,7 @@ class Forminator_API {
 
 require WVI_DIR . 'inc/impostazioni.php';
 require WVI_DIR . 'inc/campi.php';
+require WVI_DIR . 'inc/archivio.php';
 require WVI_DIR . 'inc/soci.php';
 require WVI_DIR . 'inc/corsi.php';
 require WVI_DIR . 'inc/fogli.php';
@@ -534,6 +543,44 @@ $wvi_http     = null;
 $wvi_risposta = array( 'ok' => false, 'errore' => 'foglio non raggiungibile' );
 uguale( 'Verifica: errore dello script', 'Il foglio ha risposto: foglio non raggiungibile', wvi_verifica( 'corsi' )->get_error_message() );
 uguale( 'Script da copiare: soci e corsi', array( true, true ), array( false !== strpos( wvi_script( 'soci' ), 'function impostazioni_(dati)' ), false !== strpos( wvi_script( 'corsi' ), "var CONFIGURAZIONI = 'configurazioni';" ) ) );
+
+// Invio 1.1.1: spam recuperato, abbandonate, attesa delle nuove, blocco, prima configurazione, colonna del corso
+wvi_configura();
+$wvi_opzioni['wvi_soci_impostazioni'] += array( 'url' => 'https://script.google.com/macros/s/abc/exec', 'token' => 't' );
+$wvi_opzioni['wvi_soci_ultimo']        = 10;
+$wvi_iscr = static fn( $id, $data, $extra = array() ) => (object) ( array( 'form_id' => 274, 'entry_id' => $id, 'date_created_sql' => $data, 'meta_data' => array( 'name-1' => array( 'value' => 'N' . $id ) ) ) + $extra );
+Forminator_API::$entries = array(
+	$wvi_iscr( 9, '2026-09-10 10:00:00', array( 'is_spam' => 1 ) ),
+	$wvi_iscr( 11, '2026-09-12 10:00:00' ),
+	$wvi_iscr( 12, '2026-09-13 10:00:00', array( 'status' => 'abandoned' ) ),
+	$wvi_iscr( 13, '2026-10-07 09:59:00' ),
+	$wvi_iscr( 14, '2026-10-07 09:50:00' ),
+);
+$wvi_l = wvi_iscrizioni( 'soci' );
+uguale( 'Spam e abbandonata sospese; ci si ferma alla prima appena arrivata (13), anche la 14 aspetta', array( array( 11 ), array( 9, 12 ) ), array( array_map( static fn( $e ) => $e->entry_id, $wvi_l['da_inviare'] ), $wvi_l['sospese'] ) );
+$wvi_risposta = array( 'ok' => true, 'rif' => array( 'F274-11' ) );
+uguale( 'Invio: una iscrizione, punto raggiunto 11, non oltre la 13 in attesa', array( 1, 11 ), array( wvi_sync( 'soci' )['inviate'], $wvi_opzioni['wvi_soci_ultimo'] ) );
+Forminator_API::$entries[0]->is_spam = 0;
+uguale( 'Tolta dallo spam con numero superato: parte', array( 9 ), array_map( static fn( $e ) => $e->entry_id, wvi_iscrizioni( 'soci' )['da_inviare'] ) );
+$wvi_adesso = '2026-10-07 10:05:00';
+uguale( 'Passati due minuti: partono la 9 recuperata, la 13 e la 14', array( 9, 13, 14 ), array_map( static fn( $e ) => $e->entry_id, wvi_iscrizioni( 'soci' )['da_inviare'] ) );
+$wvi_opzioni['wvi_soci_invio_in_corso'] = time();
+uguale( 'Invio già in corso: fermo, nessuna richiesta', array( 0, 'Un altro invio è in corso: riprova fra qualche minuto.' ), array_values( wvi_sync( 'soci' ) ) );
+$wvi_opzioni['wvi_soci_invio_in_corso'] = time() - 3600;
+$wvi_risposta                           = array( 'ok' => true, 'rif' => array( 'F274-9', 'F274-13', 'F274-14' ) );
+uguale( 'Blocco rimasto da un invio interrotto: si invia e si libera', array( 3, false, 14, array( 12 ) ), array( wvi_sync( 'soci' )['inviate'], isset( $wvi_opzioni['wvi_soci_invio_in_corso'] ), $wvi_opzioni['wvi_soci_ultimo'], $wvi_opzioni['wvi_soci_sospese'] ) );
+$wvi_adesso = '2026-10-07 10:00:00';
+uguale( 'Numero più alto, spam e abbandonate comprese', 14, wvi_ultimo_id( 274 ) );
+
+$wvi_opzioni = array( 'admin_email' => 'a@esempio.it' );
+Forminator_API::$entries = array( $wvi_iscr( 3, '2026-09-01 10:00:00' ), $wvi_iscr( 5, '2026-09-02 10:00:00' ) );
+wvi_salva_collegamento( 'corsi', array( 'url' => 'https://script.google.com/macros/s/abc/exec', 'token' => 't', 'form' => '1617', '_caselle' => array( 'dalle_nuove' ), 'dalle_nuove' => '1' ) );
+uguale( 'Prima configurazione con "solo le nuove": partenza dall\'ultima già presente', array( 5, array() ), array( wvi_ultimo( 'corsi' ), wvi_iscrizioni( 'corsi' )['da_inviare'] ) );
+wvi_salva_collegamento( 'corsi', array( 'url' => 'https://script.google.com/macros/s/abc/exec', 'token' => '', 'form' => '1800', '_caselle' => array( 'dalle_nuove' ), 'dalle_nuove' => '1' ) );
+uguale( 'Modulo cambiato: si riparte dalla prima del nuovo', 0, wvi_ultimo( 'corsi' ) );
+$wvi_avvisi = wvi_salva_regole( 'corsi', array( 'col_corso' => '', 'colonne' => "Nome = name-1\ncorso = checkbox-1" ) );
+uguale( 'Colonna del corso vuota o ripetuta fra le colonne: corretta con due avvisi', array( 'Corso', array( 'Nome' => 'name-1' ), 2 ), array( wvi_config( 'corsi' )['col_corso'], wvi_config( 'corsi' )['colonne'], count( $wvi_avvisi ) ) );
+Forminator_API::$entries = array();
 
 // Recupera i tuoi dati: email all'indirizzo dell'ultima iscrizione, a video sempre lo stesso
 wvi_configura();

@@ -47,6 +47,7 @@ wvoce-iscrizioni.php   intestazione, caricamento dei moduli, disattivazione
 uninstall.php          eliminazione: impostazioni, stato e giro programmato
 inc/impostazioni.php   impostazioni generali e dei collegamenti, testi con segnaposto, importazione
 inc/campi.php          valori dei campi Forminator, struttura dei moduli, codice fiscale
+inc/archivio.php       query mirate sulle tabelle di Forminator: ricerca del codice fiscale, iscrizioni da inviare
 inc/soci.php           anno sociale, iscrizioni di una persona, righe del foglio dei soci
 inc/corsi.php          corsi scelti, righe del foglio dei corsi, corrispondenza corso → tab
 inc/fogli.php          invio ai fogli: punto raggiunto, sospese, chiamate all'app web, cron

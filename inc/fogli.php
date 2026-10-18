@@ -23,20 +23,6 @@ function wvi_configurato( $id = 'soci' ) {
 }
 
 /**
- * Numero più alto fra le iscrizioni di un modulo (spam e bozze compresi).
- *
- * @param int $form Id del modulo.
- */
-function wvi_ultimo_id( $form ) {
-	$entries = Forminator_API::get_entries( $form );
-	$max     = 0;
-	foreach ( is_array( $entries ) ? $entries : array() as $e ) {
-		$max = is_object( $e ) ? max( $max, (int) $e->entry_id ) : $max;
-	}
-	return $max;
-}
-
-/**
  * Ultima iscrizione confermata dal foglio. Per un collegamento che parte dalle iscrizioni nuove, la
  * prima volta si fissa come punto di partenza l'iscrizione più recente già presente.
  *
@@ -59,13 +45,22 @@ function wvi_ultimo( $id = 'soci' ) {
 	return (int) $inizio;
 }
 
+/*
+ * Secondi di attesa prima di mandare un'iscrizione appena arrivata: Forminator scrive l'iscrizione e
+ * poi i suoi campi, e un giro capitato in mezzo manderebbe una riga vuota, che il foglio terrebbe.
+ */
+const WVI_ATTESA_NUOVE = 120;
+
 /**
- * Iscrizioni di un collegamento, lette una volta:
- * - "da_inviare": dopo l'ultima confermata, dalla data di partenza (se c'è) in poi, niente spam né
- *   bozze salvate, dalla più vecchia; più quelle annotate fra le sospese che ora sono valide;
- * - "sospese": bozze e spam dopo il punto di partenza. Una bozza completata, o un'iscrizione tolta
- *   dallo spam, può avere un numero già superato dall'ultima confermata: senza questo elenco non
- *   partirebbe più.
+ * Iscrizioni di un collegamento:
+ * - "da_inviare": valide, dopo l'ultima confermata o fra le sospese annotate, dalla data di partenza
+ *   (se c'è), dalla più vecchia, con i loro campi; le nuove si fermano alla prima arrivata da meno di
+ *   WVI_ATTESA_NUOVE secondi;
+ * - "sospese": non valide (spam, bozze, abbandonate, in attesa) dopo il punto di partenza. Una bozza
+ *   completata o un'iscrizione tolta dallo spam può avere un numero già superato dall'ultima
+ *   confermata: senza questo elenco non partirebbe più.
+ * Si leggono numero e stato delle sole iscrizioni dopo il punto di partenza; i campi solo di quelle
+ * da inviare.
  *
  * @param string $id Collegamento.
  * @return array{da_inviare:object[],sospese:int[]}
@@ -74,27 +69,35 @@ function wvi_iscrizioni( $id = 'soci' ) {
 	$c        = wvi_config( $id );
 	$ultimo   = wvi_ultimo( $id );
 	$base     = $c['inizio'] ? (int) get_option( $c['inizio'], 0 ) : 0;
-	$annotate = array_flip( array_map( 'intval', (array) get_option( $c['sospese'], array() ) ) );
-	$entries  = Forminator_API::get_entries( $c['form'] );
+	$annotate = array_map( 'intval', (array) get_option( $c['sospese'], array() ) );
+	$limite   = strtotime( current_time( 'mysql' ) ) - WVI_ATTESA_NUOVE;
+	$ferma    = false;
 	$out      = array(
 		'da_inviare' => array(),
 		'sospese'    => array(),
 	);
-	foreach ( is_array( $entries ) ? $entries : array() as $e ) {
-		if ( ! is_object( $e ) || ( '' !== $c['dal'] && substr( (string) $e->date_created_sql, 0, 10 ) < $c['dal'] ) ) {
+	foreach ( wvi_archivio_elenco( $c['form'], min( $ultimo, $base ), $annotate, $c['dal'] ) as $r ) {
+		if ( ! $r['valida'] ) {
+			if ( $r['id'] > $base ) {
+				$out['sospese'][] = $r['id'];
+			}
 			continue;
 		}
-		$n = (int) $e->entry_id;
-		if ( ! empty( $e->is_spam ) || ! empty( $e->draft_id ) ) {
-			if ( $n > $base ) {
-				$out['sospese'][] = $n;
-			}
-		} elseif ( $n > $ultimo || isset( $annotate[ $n ] ) ) {
-			$out['da_inviare'][] = $e;
+		$nuova = $r['id'] > $ultimo;
+		if ( ! $nuova && ! in_array( $r['id'], $annotate, true ) ) {
+			continue;
+		}
+		if ( $nuova && ( $ferma || strtotime( $r['data'] ) > $limite ) ) {
+			// Appena arrivata: aspetta il giro dopo, e con lei le successive, perché il punto raggiunto
+			// non la superi lasciandola indietro.
+			$ferma = true;
+			continue;
+		}
+		$entry = wvi_iscrizione( $c['form'], $r['id'] );
+		if ( $entry ) {
+			$out['da_inviare'][] = $entry;
 		}
 	}
-	usort( $out['da_inviare'], static fn( $a, $b ) => (int) $a->entry_id <=> (int) $b->entry_id );
-	sort( $out['sospese'] );
 	return $out;
 }
 
@@ -217,6 +220,29 @@ function wvi_sync( $id = 'soci' ) {
 	if ( ! wvi_configurato( $id ) ) {
 		return array( 'inviate' => 0, 'errore' => 'Collegamento non configurato.' );
 	}
+	// Un solo invio per collegamento alla volta (giro automatico e "Invia adesso"): due invii insieme
+	// potrebbero riscrivere il punto raggiunto con un valore vecchio.
+	$blocco = "wvi_{$id}_invio_in_corso";
+	if ( ! add_option( $blocco, time(), '', false ) ) {
+		if ( (int) get_option( $blocco, 0 ) > time() - 10 * MINUTE_IN_SECONDS ) {
+			return array( 'inviate' => 0, 'errore' => 'Un altro invio è in corso: riprova fra qualche minuto.' );
+		}
+		update_option( $blocco, time(), false ); // Blocco rimasto da un invio interrotto.
+	}
+	try {
+		return wvi_sync_invia( $id );
+	} finally {
+		delete_option( $blocco );
+	}
+}
+
+/**
+ * Corpo dell'invio di wvi_sync(), con il blocco già preso.
+ *
+ * @param string $id Collegamento.
+ * @return array Esito: inviate, errore.
+ */
+function wvi_sync_invia( $id ) {
 	$c       = wvi_config( $id );
 	$col_rif = wvi_generali()['col_rif'];
 	$stato   = (array) get_option( $c['stato'], array() );

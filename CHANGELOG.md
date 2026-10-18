@@ -1,5 +1,16 @@
 # Note di versione
 
+## Versione 1.1.1: invio ai fogli più robusto, ricerca del codice fiscale mirata
+
+- **Ricerca del codice fiscale con una query mirata** (`inc/archivio.php`): le regole sui moduli e "Recupera i tuoi dati" cercano solo le iscrizioni con quel codice, invece di leggere tutte le iscrizioni del modulo con i loro campi. Su una prova con 304 iscrizioni: da 614 query a 6. Anche il giro verso i fogli legge numero e stato delle sole iscrizioni dopo l'ultima inviata, e i campi solo di quelle da inviare.
+- **Iscrizioni tolte dallo spam di nuovo inviate.** Forminator esclude lo spam dall'elenco che il plugin usava: un'iscrizione messa nello spam e poi recuperata, se nel frattempo ne erano arrivate altre, non partiva più. Ora lo spam si vede, resta sospeso e parte quando torna valido (difetto ereditato dal tema).
+- **Iscrizioni abbandonate, in attesa o con pagamento fallito** (stato di Forminator) non valgono più come iscrizioni: restano sospese, fuori dai fogli e dalle regole sui soci.
+- **Due minuti di attesa per le iscrizioni appena arrivate**, perché il giro non le legga mentre Forminator ne sta ancora salvando i campi (finirebbe nel foglio una riga vuota). Il giro si ferma alla prima in attesa, così il punto raggiunto non la supera.
+- **Un invio alla volta:** il giro automatico e "Invia adesso" non partono insieme.
+- **"Solo le nuove" alla prima configurazione** fissa davvero il punto di partenza all'ultima iscrizione presente (prima partiva tutto lo storico).
+- **Colonna del corso:** non può restare vuota né comparire fra le colonne del foglio (le righe dei corsi diventavano uguali); il pannello lo corregge e avvisa.
+- **Collaudo** su WordPress con Forminator e un finto foglio: ricerca del codice fiscale (minuscole e spazi compresi, spam e abbandonate escluse), spam recuperato, attesa delle nuove, invio. **Test:** 144 controlli.
+
 ## Versione 1.1.0: pannello più sicuro, moduli anche come blocco
 
 - **Avvisi sui campi:** nelle schede Campi e regole e Passaggio e recupero il pannello segnala i campi indicati (codice fiscale, email, corsi, colonne, campi da riportare o da recuperare) che il modulo non contiene: un errore di battitura non dà più in silenzio una colonna vuota o un campo non compilato.

@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       wvoce-iscrizioni
  * Description:       Iscrizioni a socio e ai corsi con Forminator: codice fiscale controllato, socio richiesto per i corsi e unico per anno sociale, passaggio dal modulo dei soci a quello dei corsi, "Recupera i tuoi dati" con conferma via email, copia automatica delle iscrizioni nei fogli Google. Tutto si configura in Strumenti → Iscrizioni.
- * Version:           1.1.0
+ * Version:           1.1.1
  * Requires at least: 6.5
  * Requires PHP:      7.4
  * Requires Plugins:  forminator
@@ -16,12 +16,13 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'WVI_VERSIONE', '1.1.0' );
+define( 'WVI_VERSIONE', '1.1.1' );
 define( 'WVI_DIR', plugin_dir_path( __FILE__ ) );
 define( 'WVI_URL', plugin_dir_url( __FILE__ ) );
 
 require WVI_DIR . 'inc/impostazioni.php';
 require WVI_DIR . 'inc/campi.php';
+require WVI_DIR . 'inc/archivio.php';
 require WVI_DIR . 'inc/soci.php';
 require WVI_DIR . 'inc/corsi.php';
 require WVI_DIR . 'inc/fogli.php';

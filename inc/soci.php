@@ -48,11 +48,12 @@ function wvi_soci_tab( $data ) {
 }
 
 /**
- * Iscrizioni a socio di una persona, sul modulo dei soci, dal giorno $dal in poi: niente spam né bozze.
+ * Iscrizioni a socio valide di una persona, sul modulo dei soci, dal giorno $dal in poi. Una query
+ * sul solo codice fiscale (wvi_archivio_cerca_cf()), non la lettura di tutte le iscrizioni.
  *
  * @param string $cf  Codice fiscale.
  * @param string $dal Primo giorno, "Y-m-d".
- * @return object[] Iscrizioni, nell'ordine di Forminator.
+ * @return object[] Iscrizioni, dalla più vecchia.
  */
 function wvi_soci_iscrizioni( $cf, $dal ) {
 	$c  = wvi_config( 'soci' );
@@ -60,18 +61,7 @@ function wvi_soci_iscrizioni( $cf, $dal ) {
 	if ( '' === $cf || '' === $c['campo_cf'] || ! $c['form'] || ! class_exists( 'Forminator_API' ) ) {
 		return array();
 	}
-	$trovate = array();
-	$entries = Forminator_API::get_entries( $c['form'] );
-	foreach ( is_array( $entries ) ? $entries : array() as $e ) {
-		if ( ! is_object( $e ) || ! empty( $e->is_spam ) || ! empty( $e->draft_id ) || substr( (string) ( $e->date_created_sql ?? '' ), 0, 10 ) < $dal ) {
-			continue;
-		}
-		$v = $e->meta_data[ $c['campo_cf'] ]['value'] ?? '';
-		if ( is_scalar( $v ) && wvi_cf_normalizza( $v ) === $cf ) {
-			$trovate[] = $e;
-		}
-	}
-	return $trovate;
+	return wvi_archivio_cerca_cf( $c['form'], $c['campo_cf'], $cf, $dal );
 }
 
 /**

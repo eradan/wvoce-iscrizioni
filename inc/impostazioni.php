@@ -319,11 +319,14 @@ function wvi_salva_collegamento( $id, $dati ) {
 	if ( $form !== $c['form'] ) {
 		delete_option( $c['ultimo'] );
 		delete_option( $c['sospese'] );
-		// Da capo davvero: anche le iscrizioni arrivate al modulo nuovo prima del cambio nel pannello.
-		// Il punto di partenza "dalle nuove" vale solo per la prima attivazione del collegamento.
-		update_option( "wvi_{$id}_inizio", 0, false );
 		if ( $c['form'] ) {
+			// Modulo cambiato: da capo davvero, anche con le iscrizioni arrivate al modulo nuovo prima del
+			// cambio nel pannello. Il punto di partenza "solo le nuove" vale per la prima attivazione.
+			update_option( "wvi_{$id}_inizio", 0, false );
 			$avvisi[] = "{$c['titolo']}: modulo cambiato, l'invio riparte da capo per il modulo n. {$form}.";
+		} else {
+			// Prima configurazione: con "solo le nuove" il punto di partenza si fissa al primo giro.
+			delete_option( "wvi_{$id}_inizio" );
 		}
 	}
 	update_option( $c['impostazioni'], array_merge( $prima, $nuove ), false );
@@ -336,8 +339,10 @@ function wvi_salva_collegamento( $id, $dati ) {
  *
  * @param string $id   Collegamento.
  * @param array  $dati Valori inviati.
+ * @return string[] Avvisi per chi salva.
  */
 function wvi_salva_regole( $id, $dati ) {
+	$avvisi  = array();
 	$c       = wvi_config( $id );
 	$prima   = (array) get_option( $c['impostazioni'], array() );
 	$def     = wvi_predefiniti( $id );
@@ -369,7 +374,23 @@ function wvi_salva_regole( $id, $dati ) {
 	if ( isset( $dati['tab_prefisso'] ) ) {
 		$nuove['tab_prefisso'] = ltrim( str_replace( array( "\r", "\n", "\t" ), '', strip_tags( (string) $dati['tab_prefisso'] ) ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags -- wp_strip_all_tags() toglierebbe anche lo spazio finale.
 	}
+		// Il corso ha la sua colonna: una colonna del foglio con lo stesso nome la coprirebbe con il valore
+	// unito ("A, B") e le righe dei corsi diventerebbero uguali.
+	if ( 'corsi' === $id ) {
+		if ( isset( $nuove['col_corso'] ) && '' === $nuove['col_corso'] ) {
+			$nuove['col_corso'] = $c['col_corso'];
+			$avvisi[]           = 'La colonna del corso non può restare vuota: resta "' . $c['col_corso'] . '".';
+		}
+		$col_corso = $nuove['col_corso'] ?? $c['col_corso'];
+		foreach ( array_keys( (array) ( $nuove['colonne'] ?? array() ) ) as $titolo ) {
+			if ( 0 === strcasecmp( trim( (string) $titolo ), trim( $col_corso ) ) ) {
+				unset( $nuove['colonne'][ $titolo ] );
+				$avvisi[] = "La colonna \"{$titolo}\" è già quella del corso (una riga per corso): tolta dalle colonne.";
+			}
+		}
+	}
 	update_option( $c['impostazioni'], array_merge( $prima, $nuove ), false );
+	return $avvisi;
 }
 
 /**
