@@ -1,0 +1,48 @@
+/* wvoce-iscrizioni: parti aggiunte ai moduli Forminator. Stile minimo, che eredita carattere e colori
+ * del tema; i colori si adattano ridefinendo le variabili --wvi-* nel tema:
+ * --wvi-accento (link e bordi), --wvi-fondo (riquadri), --wvi-testo, --wvi-testo-2 (testo secondario),
+ * --wvi-errore, --wvi-piccolo (dimensione del testo). */
+
+.wvi-avviso,
+.wvi-recupera__esito {
+	padding: 10px 14px;
+	background-color: var(--wvi-fondo, rgba(127, 127, 127, 0.1));
+	border-left: 3px solid var(--wvi-accento, currentColor);
+	color: var(--wvi-testo, inherit);
+	font-size: var(--wvi-piccolo, 0.9em);
+}
+.wvi-avviso {
+	margin: 0 0 24px;
+}
+
+/* Codice fiscale sbagliato, segnalato all'uscita dal campo */
+.wvi-cf-errore {
+	margin: 6px 0 0;
+	color: var(--wvi-errore, #c40000);
+	font-size: var(--wvi-piccolo, 0.9em);
+}
+
+/* "Recupera i tuoi dati": link a destra sotto il codice fiscale; l'esito sotto la riga */
+.wvi-recupera {
+	margin: 4px 0 0;
+	text-align: right;
+	font-size: var(--wvi-piccolo, 0.9em);
+	color: var(--wvi-testo-2, inherit);
+}
+.wvi-recupera__link {
+	color: var(--wvi-accento, inherit);
+	font-weight: 600;
+	text-decoration: underline;
+	text-underline-offset: 3px;
+}
+.wvi-recupera__link:hover,
+.wvi-recupera__link:focus-visible {
+	color: var(--wvi-testo, inherit);
+}
+.wvi-recupera__link[aria-disabled="true"] {
+	opacity: 0.6;
+	cursor: wait;
+}
+.wvi-recupera__esito {
+	margin: 0 0 22px;
+}

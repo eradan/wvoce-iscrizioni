@@ -1,0 +1,9 @@
+# Strumenti di sviluppo (composer install)
+/vendor/
+/composer.lock
+
+# Zip del plugin (bin/build-zip.sh)
+/build/
+
+.DS_Store
+Thumbs.db

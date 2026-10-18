@@ -1,0 +1,23 @@
+{
+	"name": "eradan/wvoce-iscrizioni",
+	"description": "Plugin WordPress: iscrizioni a socio e ai corsi con Forminator e copia nei fogli Google (strumenti di sviluppo).",
+	"type": "wordpress-plugin",
+	"license": "GPL-2.0-or-later",
+	"require": {
+		"php": ">=7.4"
+	},
+	"require-dev": {
+		"wp-coding-standards/wpcs": "^3.1",
+		"phpcompatibility/phpcompatibility-wp": "^2.1"
+	},
+	"config": {
+		"allow-plugins": {
+			"dealerdirect/phpcodesniffer-composer-installer": true
+		}
+	},
+	"scripts": {
+		"lint": "phpcs",
+		"test": "php tests/run.php",
+		"build": "bash bin/build-zip.sh"
+	}
+}
