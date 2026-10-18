@@ -260,7 +260,8 @@ function wvi_admin_area( $nome, $valore, $righe = 4 ) {
  * @param string $etichetta Testo accanto.
  */
 function wvi_admin_casella( $nome, $valore, $etichetta ) {
-	return sprintf( '<label><input type="checkbox" name="wvi[%s]" value="1"%s> %s</label>', esc_attr( $nome ), checked( (bool) $valore, true, false ), esc_html( $etichetta ) );
+	// Il campo nascosto dice che la casella era nel modulo: non spuntata vuol dire spenta (wvi_casella()).
+	return sprintf( '<input type="hidden" name="wvi[_caselle][]" value="%1$s"><label><input type="checkbox" name="wvi[%1$s]" value="1"%2$s> %3$s</label>', esc_attr( $nome ), checked( (bool) $valore, true, false ), esc_html( $etichetta ) );
 }
 
 /**
@@ -506,12 +507,6 @@ function wvi_admin_funzioni() {
 	<h2>Compilazione automatica del browser</h2>
 	<p style="max-width:820px">Valori dell'attributo <code>autocomplete</code> per i campi dei moduli dei soci e dei corsi, così il browser propone i dati salvati: <code>given-name</code>, <code>family-name</code>, <code>email</code>, <code>tel</code>, <code>street-address</code>, <code>postal-code</code>… e <code>off</code> per i campi da non riempire (per esempio il luogo di nascita, che altrimenti riceverebbe la città di residenza).</p>
 	<?php
-	foreach ( array( 'mese_inizio', 'email', 'pagina_soci', 'pagina_corsi', 'col_rif' ) as $voce ) {
-		printf( '<input type="hidden" name="wvi[%s]" value="%s">', esc_attr( $voce ), esc_attr( (string) $g[ $voce ] ) );
-	}
-	if ( $g['proxy'] ) {
-		echo '<input type="hidden" name="wvi[proxy]" value="1">';
-	}
 	$coppie = array();
 	foreach ( $g['autocomplete'] as $campo => $valore ) {
 		$coppie[] = "{$campo} = {$valore}";

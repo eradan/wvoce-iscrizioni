@@ -1,5 +1,12 @@
 # Note di versione
 
+## Versione 1.0.1: il salvataggio di una scheda non cambia più le altre
+
+- **Correzione importante.** Salvare una scheda del pannello spegneva le caselle sì/no che stanno in un'altra scheda dello stesso collegamento, e salvare le impostazioni generali cancellava la compilazione automatica. Per esempio, salvando "Passaggio e recupero" si spegnevano il controllo del codice fiscale e la regola "una sola iscrizione per anno" del modulo dei soci; salvando "Campi e regole" si spegneva "Recupera i tuoi dati". Ora ogni scheda salva solo i suoi campi.
+- **Test:** 129 controlli.
+
+Da fare dopo l'aggiornamento: in Strumenti → Iscrizioni ricontrollare le caselle di tutte le schede (Campi e regole per soci e corsi, Passaggio e recupero, Sito dietro un proxy) e la compilazione automatica, e salvarle una per una.
+
 ## Versione 1.0.0: prima versione
 
 Gestione delle iscrizioni estratta dal tema VivaVoce (versioni fino alla 0.13) e resa indipendente da tema e associazione: tutto ciò che il tema aveva scritto nel codice è ora un'impostazione del pannello Strumenti → Iscrizioni.

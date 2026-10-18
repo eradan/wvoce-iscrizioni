@@ -449,6 +449,7 @@ wvi_salva_regole(
 		'campo_cf'       => 'text-1',
 		'tab_prefisso'   => 'Tessere ',
 		'colonne'        => "Nome = name-1\nCittà = address-1.city\nAssicurazione =\nsenza uguale\n = vuoto",
+		'_caselle'       => array( 'recupera', 'unico' ),
 		'recupera'       => '1',
 		'recupera_campi' => "name-1, address-1.city\nemail-1",
 		'recupera_anni'  => '0',
@@ -461,7 +462,18 @@ uguale( 'Regole: colonne di nuovo in testo', "Nome = name-1\nCittà = address-1.
 uguale( 'Regole: elenco, numeri almeno 1, prefisso con lo spazio', array( array( 'name-1', 'address-1.city', 'email-1' ), 1, 'Tessere ' ), array( $c['recupera_campi'], $c['recupera_anni'], $c['tab_prefisso'] ) );
 uguale( 'Regole: casella non spuntata vuol dire spenta', array( true, false ), array( $c['recupera'], $c['unico'] ) );
 uguale( 'Regole: collegamento intatto', 300, $c['form'] );
+// Ogni scheda salva solo le sue caselle: le altre restano com'erano
+wvi_salva_regole( 'soci', array( '_caselle' => array( 'controlla', 'unico' ), 'controlla' => '1', 'unico' => '1', 'campo_cf' => 'text-1' ) );
+uguale( 'Regole: salvare "Campi e regole" non spegne "Recupera i tuoi dati"', array( true, true, true ), array( wvi_config( 'soci' )['recupera'], wvi_config( 'soci' )['unico'], wvi_config( 'soci' )['controlla'] ) );
+wvi_salva_regole( 'soci', array( '_caselle' => array( 'recupera' ), 'recupera' => '1', 'recupera_invito' => 'Già stato socio? <a>Recupera i tuoi dati</a>' ) );
+uguale( 'Regole: salvare "Passaggio e recupero" non spegne i controlli', array( true, true, true ), array( wvi_config( 'soci' )['recupera'], wvi_config( 'soci' )['unico'], wvi_config( 'soci' )['controlla'] ) );
+wvi_salva_regole( 'soci', array( '_caselle' => array( 'recupera' ) ) );
+uguale( 'Regole: casella nel modulo e non spuntata, spenta', false, wvi_config( 'soci' )['recupera'] );
 wvi_salva_generali( array( 'mese_inizio' => '9', 'email' => 'non-valida', 'pagina_soci' => 'https://esempio.it/soci/', 'col_rif' => '', 'autocomplete' => "name-1 = given-name\nname-2=family-name\nsenza" ) );
+wvi_salva_generali( array( 'mese_inizio' => '9', 'email' => 'admin@esempio.it', 'pagina_soci' => 'https://esempio.it/soci/', 'col_rif' => 'Rif.', '_caselle' => array( 'proxy' ), 'proxy' => '1' ) );
+uguale( 'Generali: salvare la scheda Collegamenti non cancella la compilazione automatica', array( 'name-1' => 'given-name', 'name-2' => 'family-name' ), wvi_generali()['autocomplete'] );
+wvi_salva_generali( array( 'autocomplete' => "name-1 = given-name\nname-2=family-name" ) );
+uguale( 'Generali: salvare la compilazione automatica non spegne il proxy né cambia la pagina', array( true, 'https://esempio.it/soci/' ), array( wvi_generali()['proxy'], wvi_generali()['pagina_soci'] ) );
 $g = wvi_generali();
 uguale( 'Generali: mese, email non valida sostituita, riferimenti predefiniti', array( 9, 'admin@esempio.it', 'Rif.' ), array( $g['mese_inizio'], $g['email'], $g['col_rif'] ) );
 uguale( 'Generali: compilazione automatica', array( 'name-1' => 'given-name', 'name-2' => 'family-name' ), $g['autocomplete'] );

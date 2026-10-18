@@ -241,6 +241,29 @@ function wvi_data( $value ) {
 }
 
 /**
+ * Caselle sì/no presenti nel modulo del pannello che è stato inviato. Una casella non spuntata non
+ * arriva affatto: senza questo elenco non si distinguerebbe da una casella che sta in un'altra scheda,
+ * e salvare una scheda spegnerebbe le caselle delle altre.
+ *
+ * @param array $dati Valori inviati (con "_caselle", aggiunto da wvi_admin_casella()).
+ * @return string[]
+ */
+function wvi_caselle_inviate( $dati ) {
+	return array_map( 'strval', (array) ( $dati['_caselle'] ?? array() ) );
+}
+
+/**
+ * Valore di una casella sì/no: quello inviato se la casella era nel modulo, altrimenti quello di prima.
+ *
+ * @param array  $dati   Valori inviati.
+ * @param string $nome   Nome della casella.
+ * @param bool   $prima  Valore salvato.
+ */
+function wvi_casella( $dati, $nome, $prima ) {
+	return in_array( $nome, wvi_caselle_inviate( $dati ), true ) ? ! empty( $dati[ $nome ] ) : (bool) $prima;
+}
+
+/**
  * Salva il collegamento di un foglio dal pannello: indirizzo e codice dell'app web, foglio, modulo,
  * data di partenza. Codice vuoto: resta quello salvato. Se cambia il modulo si riparte da capo.
  *
@@ -284,7 +307,7 @@ function wvi_salva_collegamento( $id, $dati ) {
 		'form'        => $form,
 		'dal'         => $dal,
 		'foglio'      => $foglio,
-		'dalle_nuove' => ! empty( $dati['dalle_nuove'] ),
+		'dalle_nuove' => wvi_casella( $dati, 'dalle_nuove', $c['dalle_nuove'] ),
 	);
 	if ( $form !== $c['form'] ) {
 		delete_option( $c['ultimo'] );
@@ -320,7 +343,7 @@ function wvi_salva_regole( $id, $dati ) {
 			continue;
 		}
 		if ( is_bool( $predefinito ) ) {
-			$nuove[ $chiave ] = ! empty( $dati[ $chiave ] );
+			$nuove[ $chiave ] = wvi_casella( $dati, $chiave, $c[ $chiave ] );
 		} elseif ( ! array_key_exists( $chiave, $dati ) ) {
 			continue;
 		} elseif ( 'colonne' === $chiave ) {
@@ -343,24 +366,33 @@ function wvi_salva_regole( $id, $dati ) {
 }
 
 /**
- * Salva le impostazioni generali dal pannello.
+ * Salva le impostazioni generali dal pannello. Le voci assenti dal modulo inviato (stanno in un'altra
+ * scheda) restano come sono.
  *
  * @param array $dati Valori inviati.
  */
 function wvi_salva_generali( $dati ) {
 	$prima = (array) get_option( 'wvi_generali', array() );
-	$email = sanitize_email( (string) ( $dati['email'] ?? '' ) );
-	$nuove = array(
-		'mese_inizio'  => min( 12, max( 1, absint( $dati['mese_inizio'] ?? 1 ) ) ),
-		'email'        => $email ? $email : (string) get_option( 'admin_email' ),
-		'pagina_soci'  => esc_url_raw( trim( (string) ( $dati['pagina_soci'] ?? '' ) ) ),
-		'pagina_corsi' => esc_url_raw( trim( (string) ( $dati['pagina_corsi'] ?? '' ) ) ),
-		'proxy'        => ! empty( $dati['proxy'] ),
-		'col_rif'      => sanitize_text_field( (string) ( $dati['col_rif'] ?? 'Rif.' ) ),
-		'autocomplete' => wvi_coppie( (string) ( $dati['autocomplete'] ?? '' ) ),
-	);
-	if ( '' === $nuove['col_rif'] ) {
-		$nuove['col_rif'] = 'Rif.';
+	$g     = wvi_generali();
+	$nuove = array( 'proxy' => wvi_casella( $dati, 'proxy', $g['proxy'] ) );
+	if ( isset( $dati['mese_inizio'] ) ) {
+		$nuove['mese_inizio'] = min( 12, max( 1, absint( $dati['mese_inizio'] ) ) );
+	}
+	if ( isset( $dati['email'] ) ) {
+		$email          = sanitize_email( (string) $dati['email'] );
+		$nuove['email'] = $email ? $email : (string) get_option( 'admin_email' );
+	}
+	foreach ( array( 'pagina_soci', 'pagina_corsi' ) as $voce ) {
+		if ( isset( $dati[ $voce ] ) ) {
+			$nuove[ $voce ] = esc_url_raw( trim( (string) $dati[ $voce ] ) );
+		}
+	}
+	if ( isset( $dati['col_rif'] ) ) {
+		$rif              = sanitize_text_field( (string) $dati['col_rif'] );
+		$nuove['col_rif'] = '' !== $rif ? $rif : 'Rif.';
+	}
+	if ( isset( $dati['autocomplete'] ) ) {
+		$nuove['autocomplete'] = wvi_coppie( (string) $dati['autocomplete'] );
 	}
 	update_option( 'wvi_generali', array_merge( $prima, $nuove ), false );
 }
