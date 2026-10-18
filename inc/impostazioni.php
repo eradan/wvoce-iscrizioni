@@ -29,15 +29,6 @@ function wvi_collegamenti() {
 }
 
 /**
- * Valori predefiniti delle impostazioni di un collegamento, dallo schema (inc/schema.php).
- *
- * @param string $id Collegamento.
- */
-function wvi_predefiniti( $id ) {
-	return wvi_schema_predefiniti( $id );
-}
-
-/**
  * Impostazioni generali: anno sociale, pagine dei moduli, contatto, proxy, colonna dei riferimenti,
  * messaggio sul codice fiscale, compilazione automatica del browser. Senza un'email di contatto vale
  * quella dell'amministratore del sito.
@@ -63,7 +54,7 @@ function wvi_config( $id = 'soci' ) {
 		return $copie[ $id ][1];
 	}
 	$tipo = (array) ( wvi_collegamenti()[ $id ] ?? array() );
-	$c    = array_merge( wvi_predefiniti( $id ), $s );
+	$c    = array_merge( wvi_schema_predefiniti( $id ), $s );
 
 	$c['id']           = $id;
 	$c['titolo']       = (string) ( $tipo['titolo'] ?? $id );
@@ -221,8 +212,13 @@ function wvi_pulisci( $v, $dati, $prima ) {
 		case 'coppie':
 			return array( wvi_coppie( $testo ), '' );
 		case 'html':
-		case 'area':
+		case 'area_html':
 			$valore = wp_kses_post( $testo );
+			break;
+		case 'area':
+			// Testo semplice: wp_kses_post() scriverebbe "&amp;" al posto di "&", che a video e nelle
+			// email in solo testo resterebbe tale.
+			$valore = sanitize_textarea_field( $testo );
 			break;
 		case 'prefisso':
 			// Può finire con uno spazio ("Soci 2026-2027"): wp_strip_all_tags() lo toglierebbe.
@@ -344,27 +340,4 @@ function wvi_salva_colonna_corso( &$nuove ) {
 		}
 	}
 	return $avvisi;
-}
-
-/**
- * Importa una configurazione completa (per esempio da un altro sito o da una versione precedente):
- * impostazioni generali, dei collegamenti e il loro stato (punto raggiunto, sospese, partenza).
- * Sovrascrive solo le voci presenti.
- *
- * @param array $dati array( 'generali' => …, 'soci' => …, 'corsi' => …, 'stato' => array( 'soci' => array( 'ultimo', 'sospese', 'inizio', 'stato' ) … ) ).
- */
-function wvi_importa( $dati ) {
-	if ( ! empty( $dati['generali'] ) && is_array( $dati['generali'] ) ) {
-		update_option( 'wvi_generali', array_merge( (array) get_option( 'wvi_generali', array() ), $dati['generali'] ), false );
-	}
-	foreach ( array_keys( wvi_collegamenti() ) as $id ) {
-		if ( ! empty( $dati[ $id ] ) && is_array( $dati[ $id ] ) ) {
-			update_option( "wvi_{$id}_impostazioni", array_merge( (array) get_option( "wvi_{$id}_impostazioni", array() ), $dati[ $id ] ), false );
-		}
-		foreach ( array( 'ultimo', 'sospese', 'inizio', 'stato' ) as $voce ) {
-			if ( isset( $dati['stato'][ $id ][ $voce ] ) ) {
-				update_option( "wvi_{$id}_{$voce}", $dati['stato'][ $id ][ $voce ], false );
-			}
-		}
-	}
 }

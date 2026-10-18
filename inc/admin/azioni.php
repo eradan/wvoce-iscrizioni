@@ -76,7 +76,7 @@ function wvi_azione_generali( $id, $tab, $dati ) { // phpcs:ignore Generic.CodeA
 function wvi_azione_salva( $id, $tab, $dati ) {
 	$messaggi = wvi_azione_avvisi( wvi_salva( $id, $tab, $dati ) );
 	wvi_schedule();
-	delete_transient( 'wvi_corsi_mappa' );
+	wvi_azione_mappa_scaduta( $id, $tab );
 	$messaggi[] = array( 'success', wvi_config( $id )['titolo'] . ': collegamento salvato.' );
 	return $messaggi;
 }
@@ -107,9 +107,22 @@ function wvi_azione_verifica( $id, $tab, $dati ) {
  */
 function wvi_azione_regole( $id, $tab, $dati ) {
 	$messaggi = wvi_azione_avvisi( wvi_salva( $id, $tab, $dati ) );
-	delete_transient( 'wvi_corsi_mappa' );
+	wvi_azione_mappa_scaduta( $id, $tab );
 	$messaggi[] = array( 'success', wvi_config( $id )['titolo'] . ': impostazioni salvate.' );
 	return $messaggi;
+}
+
+/**
+ * L'ultima lettura della corrispondenza corso → tab non vale più se cambiano indirizzo, foglio o nomi
+ * dei tab del collegamento dei corsi; gli altri salvataggi la lasciano.
+ *
+ * @param string $id  Collegamento.
+ * @param string $tab Scheda.
+ */
+function wvi_azione_mappa_scaduta( $id, $tab ) {
+	if ( 'corsi' === $id && in_array( $tab, array( 'collegamenti', 'campi' ), true ) ) {
+		delete_transient( 'wvi_corsi_mappa' );
+	}
 }
 
 /**

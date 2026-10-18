@@ -107,6 +107,7 @@ function wvi_admin_campo_html( $v, $valore, $form ) {
 		case 'foglio':
 			return $testo( 'text', $valore, $segnaposto );
 		case 'area':
+		case 'area_html':
 		case 'colonne':
 		case 'coppie':
 			if ( 'colonne' === $v['tipo'] ) {

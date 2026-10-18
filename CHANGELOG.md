@@ -1,5 +1,14 @@
 # Note di versione
 
+## Versione 1.2.1: correzioni dalla revisione del codice
+
+- **La "&" nei testi semplici resta "&".** Gli avvisi sopra i moduli ricompilati, il messaggio di "Recupera i tuoi dati" e il testo delle due email venivano puliti come HTML: una "&" diventava "&amp;", e così si leggeva a video e nell'email. Ora sono testo semplice. I messaggi accanto al codice fiscale ("già socio", "non socio") restano in HTML semplice, con i link. Se un testo mostra già "&amp;", correggilo una volta nella scheda Passaggio e recupero.
+- **Avviso su "Riservato ai soci"** nella scheda Campi e regole quando al collegamento dei soci mancano il modulo o il campo del codice fiscale: senza, nessuno risulta socio e il modulo dei corsi si ferma per tutti.
+- **Lettura del tab di configurazione dei corsi conservata** quando si salvano le impostazioni dei soci o del passaggio. Si azzera solo se cambiano collegamento o campi e regole dei corsi.
+- **Link di "Recupera i tuoi dati"** non più valido se nel frattempo l'iscrizione è diventata bozza o abbandonata, come già per quella spostata nello spam.
+- Tolta l'importazione della configurazione, che serviva solo al passaggio di consegne dal tema VivaVoce 1.0.0.
+- **Test:** 157 controlli.
+
 ## Versione 1.2.0: pannello riorganizzato
 
 Stesso pannello, stesse impostazioni: nessun passo da fare dopo l'aggiornamento.

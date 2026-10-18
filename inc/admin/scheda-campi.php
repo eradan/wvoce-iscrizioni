@@ -28,6 +28,11 @@ function wvi_admin_campi() {
 			$voci[] = is_array( $campo ) ? (string) $campo[0] : (string) $campo;
 		}
 		wvi_admin_avviso_assenti( $c['form'], $voci, 'Campi e colonne' );
+		if ( 'corsi' === $id && $c['richiede_socio'] && ! wvi_soci_cercabili() ) :
+			?>
+			<div class="notice notice-warning inline"><p>"Riservato ai soci" è acceso ma nel collegamento dei soci mancano il modulo o il campo del codice fiscale: nessuno risulta socio e il modulo dei corsi si ferma per tutti. Completa il collegamento dei soci (schede <a href="<?php echo esc_url( wvi_admin_url() ); ?>">Collegamenti</a> e Campi e regole) o spegni la regola.</p></div>
+			<?php
+		endif;
 		wvi_admin_elenco_campi( $c['form'] );
 		wvi_admin_tabella( $id, 'campi' );
 		?>

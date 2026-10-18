@@ -48,6 +48,14 @@ function wvi_soci_tab( $data ) {
 }
 
 /**
+ * Si possono cercare i soci? Servono il modulo e il campo del codice fiscale del collegamento dei soci.
+ */
+function wvi_soci_cercabili() {
+	$c = wvi_config( 'soci' );
+	return $c['form'] > 0 && '' !== $c['campo_cf'];
+}
+
+/**
  * Iscrizioni a socio valide di una persona, sul modulo dei soci, dal giorno $dal in poi. Una query
  * sul solo codice fiscale (wvi_archivio_cerca_cf()), non la lettura di tutte le iscrizioni.
  *
@@ -58,7 +66,7 @@ function wvi_soci_tab( $data ) {
 function wvi_soci_iscrizioni( $cf, $dal ) {
 	$c  = wvi_config( 'soci' );
 	$cf = wvi_cf_normalizza( $cf );
-	if ( '' === $cf || '' === $c['campo_cf'] || ! $c['form'] || ! class_exists( 'Forminator_API' ) ) {
+	if ( '' === $cf || ! wvi_soci_cercabili() || ! class_exists( 'Forminator_API' ) ) {
 		return array();
 	}
 	return wvi_archivio_cerca_cf( $c['form'], $c['campo_cf'], $cf, $dal );

@@ -381,7 +381,8 @@ add_action( 'rest_api_init', 'wvi_recupera_rest' );
 
 /**
  * Dati da ricompilare per un codice del link, o null se il codice non è valido, è scaduto o
- * l'iscrizione non c'è più (cancellata, spostata nello spam, codice fiscale cambiato).
+ * l'iscrizione non c'è più o non è più valida (cancellata, nello spam, tornata bozza, codice fiscale
+ * cambiato).
  *
  * @param mixed $codice Codice dall'indirizzo.
  * @return array|null
@@ -393,7 +394,7 @@ function wvi_recupera_dati( $codice ) {
 	$c     = wvi_config( 'soci' );
 	$rif   = get_transient( 'wvi_recupera_' . $codice );
 	$entry = is_array( $rif ) ? Forminator_API::get_entry( $rif['form'], $rif['entry'] ) : null;
-	if ( ! is_object( $entry ) || ! empty( $entry->is_spam ) || wvi_cf_normalizza( $entry->meta_data[ $c['campo_cf'] ]['value'] ?? '' ) !== $rif['cf'] ) {
+	if ( ! wvi_iscrizione_valida( $entry ) || wvi_cf_normalizza( $entry->meta_data[ $c['campo_cf'] ]['value'] ?? '' ) !== $rif['cf'] ) {
 		return null;
 	}
 	return wvi_valori_pagina( (array) $entry->meta_data, $c['recupera_campi'] );

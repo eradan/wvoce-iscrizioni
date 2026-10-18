@@ -1,7 +1,7 @@
 <?php
 /**
  * Schema delle impostazioni: ogni campo del pannello descritto una volta sola. Da qui vengono i valori
- * predefiniti (wvi_predefiniti(), wvi_generali()), i moduli del pannello (inc/admin/componenti.php) e
+ * predefiniti (wvi_config(), wvi_generali()), i moduli del pannello (inc/admin/componenti.php) e
  * il salvataggio (wvi_salva()): un campo aggiunto qui compare nella sua scheda e si salva con la pulizia
  * del suo tipo, senza liste da tenere allineate a mano.
  *
@@ -11,7 +11,8 @@
  * non ammesso: resta il valore di prima).
  *
  * Tipi: testo, prefisso (testo che può finire con uno spazio), html (una riga con HTML semplice), area
- * (testo su più righe con HTML semplice), casella,
+ * (testo semplice su più righe: avvisi mostrati come testo, email in solo testo), area_html (più righe
+ * con HTML semplice, per i messaggi accanto ai campi), casella,
  * numero (almeno 1), elenco (id separati da virgole), colonne ("Intestazione = campo.parte"), coppie
  * ("campo = valore"), campo (tendina dei campi del modulo), modulo (tendina dei moduli), url, email, mese,
  * data, segreto (vuoto: resta quello salvato), foglio (ID o indirizzo di un foglio Google).
@@ -88,13 +89,13 @@ function wvi_schema() {
 		if ( 'soci' === $id ) {
 			$schema[] = wvi_voce( $id, 'campo_email', 'campi', 'campo', 'Campo dell\'email', '', array( 'aiuto' => 'Indirizzo a cui "Recupera i tuoi dati" scrive.' ) );
 			$schema[] = wvi_voce( $id, 'unico', 'campi', 'casella', 'Una sola iscrizione per anno', true, array( 'casella' => 'Ferma il modulo se il codice fiscale è già fra i soci dell\'anno sociale' ) );
-			$schema[] = wvi_voce( $id, 'msg_doppio', 'campi', 'area', 'Messaggio: già socio', 'Questo codice fiscale risulta già fra i soci {anno}: l\'iscrizione di quest\'anno è già registrata. Per domande o per correggere i dati scrivi a <a href="mailto:{email}">{email}</a>.', array( 'righe' => 3, 'aiuto' => 'Segnaposto: <code>{anno}</code>, <code>{email}</code>, <code>{link_soci}</code>, <code>{associazione}</code>. HTML semplice ammesso.' ) );
+			$schema[] = wvi_voce( $id, 'msg_doppio', 'campi', 'area_html', 'Messaggio: già socio', 'Questo codice fiscale risulta già fra i soci {anno}: l\'iscrizione di quest\'anno è già registrata. Per domande o per correggere i dati scrivi a <a href="mailto:{email}">{email}</a>.', array( 'righe' => 3, 'aiuto' => 'Segnaposto: <code>{anno}</code>, <code>{email}</code>, <code>{link_soci}</code>, <code>{associazione}</code>. HTML semplice ammesso.' ) );
 			$schema[] = wvi_voce( $id, 'tab_prefisso', 'campi', 'prefisso', 'Prefisso dei tab', 'Soci ', array( 'aiuto' => 'Un tab per anno sociale: prefisso + anno, per esempio "Soci 2026-2027". Lo script crea il tab dell\'anno nuovo copiando le intestazioni del più recente.' ) );
 			$schema[] = wvi_voce( $id, 'col_data', 'campi', 'testo', 'Colonna della data', 'Data', array( 'aiuto' => 'Data dell\'iscrizione ("Ott 5, 2026 @ 10:08 AM"). Vuoto: nessuna colonna.' ) );
 		} else {
 			$schema[] = wvi_voce( $id, 'campo_corsi', 'campi', 'campo', 'Campo dei corsi', '', array( 'aiuto' => 'Caselle o scelta con i corsi: una riga per ogni corso scelto.' ) );
 			$schema[] = wvi_voce( $id, 'richiede_socio', 'campi', 'casella', 'Riservato ai soci', true, array( 'casella' => 'Ferma il modulo se il codice fiscale non è fra i soci dell\'anno sociale' ) );
-			$schema[] = wvi_voce( $id, 'msg_socio', 'campi', 'area', 'Messaggio: non socio', 'Questo codice fiscale manca ancora fra i soci {anno}: i corsi sono riservati ai soci. Prima occorre iscriversi all\'associazione con il <a href="{link_soci}" target="_blank" rel="noopener">modulo di iscrizione a socio</a>, poi si torna a questa pagina.', array( 'righe' => 3, 'aiuto' => 'Segnaposto: <code>{anno}</code>, <code>{link_soci}</code>, <code>{email}</code>, <code>{associazione}</code>.' ) );
+			$schema[] = wvi_voce( $id, 'msg_socio', 'campi', 'area_html', 'Messaggio: non socio', 'Questo codice fiscale manca ancora fra i soci {anno}: i corsi sono riservati ai soci. Prima occorre iscriversi all\'associazione con il <a href="{link_soci}" target="_blank" rel="noopener">modulo di iscrizione a socio</a>, poi si torna a questa pagina.', array( 'righe' => 3, 'aiuto' => 'Segnaposto: <code>{anno}</code>, <code>{link_soci}</code>, <code>{email}</code>, <code>{associazione}</code>.' ) );
 			$schema[] = wvi_voce( $id, 'col_corso', 'campi', 'testo', 'Colonna del corso', 'Corso', array( 'obbligatorio' => true ) );
 			$schema[] = wvi_voce( $id, 'tab_configurazioni', 'campi', 'testo', 'Tab di configurazione', 'configurazioni', array( 'obbligatorio' => true, 'aiuto' => 'Tab del foglio con la corrispondenza: colonna A il tab, colonna B il testo del corso.' ) );
 			$schema[] = wvi_voce( $id, 'tab_riserva', 'campi', 'testo', 'Tab di riserva', 'Da smistare', array( 'obbligatorio' => true, 'aiuto' => 'Per i corsi che il tab di configurazione non conosce.' ) );

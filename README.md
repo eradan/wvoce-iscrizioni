@@ -46,7 +46,7 @@ Codice e commenti in italiano, prefisso `wvi_`. Struttura:
 wvoce-iscrizioni.php   intestazione, caricamento dei moduli, disattivazione
 uninstall.php          eliminazione: impostazioni, stato e giro programmato
 inc/schema.php         schema delle impostazioni: ogni campo del pannello descritto una volta (tipo, etichetta, predefinito)
-inc/impostazioni.php   impostazioni generali e dei collegamenti, pulizia e salvataggio secondo lo schema, importazione
+inc/impostazioni.php   impostazioni generali e dei collegamenti, pulizia e salvataggio secondo lo schema
 inc/campi.php          valori dei campi Forminator, struttura dei moduli, codice fiscale
 inc/archivio.php       query mirate sulle tabelle di Forminator: ricerca del codice fiscale, iscrizioni da inviare
 inc/soci.php           anno sociale, iscrizioni di una persona, righe del foglio dei soci

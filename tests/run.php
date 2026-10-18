@@ -59,7 +59,11 @@ function plugin_basename( $file ) {
 	return 'wvoce-iscrizioni/' . basename( $file );
 }
 function wp_kses_post( $text ) {
-	return (string) $text;
+	// Come wp_kses_normalize_entities(): "&" isolata diventa "&amp;".
+	return (string) preg_replace( '/&(?![a-z]+;|#\d+;)/i', '&amp;', (string) $text );
+}
+function sanitize_textarea_field( $text ) {
+	return trim( strip_tags( (string) $text ) );
 }
 function esc_url_raw( $url ) {
 	return preg_match( '#^https?://#', (string) $url ) ? (string) $url : '';
@@ -177,9 +181,12 @@ function checked( $a, $b = true, $stampa = true ) {
 function selected( $a, $b = true, $stampa = true ) {
 	return (string) $a === (string) $b ? ' selected=\'selected\'' : '';
 }
+function wp_nonce_field( $azione ) {
+	echo '<input type="hidden" name="_wpnonce" value="prova">';
+}
 function delete_transient( $name ) {
-	global $wvi_opzioni;
-	unset( $wvi_opzioni[ "_transient_{$name}" ] );
+	global $wvi_transient;
+	unset( $wvi_transient[ $name ] );
 }
 
 /**
@@ -509,15 +516,6 @@ wvi_salva( 'generali', 'funzioni', array( 'autocomplete' => "name-1 = given-name
 uguale( 'Generali: salvare la compilazione automatica non spegne il proxy né cambia la pagina', array( true, 'https://esempio.it/soci/' ), array( wvi_generali()['proxy'], wvi_generali()['pagina_soci'] ) );
 uguale( 'Testo con i segnaposto', 'VivaVoce: 2026 a admin@esempio.it, https://esempio.it/soci/', wvi_testo( '{associazione}: {anno} a {email}, {link_soci}', array( 'anno' => 2026 ) ) );
 
-wvi_importa(
-	array(
-		'generali' => array( 'mese_inizio' => 9 ),
-		'corsi'    => array( 'form' => 1617, 'dalle_nuove' => true ),
-		'stato'    => array( 'corsi' => array( 'ultimo' => 77, 'inizio' => 70, 'sospese' => array( 75 ) ) ),
-	)
-);
-uguale( 'Importazione: impostazioni e stato', array( 1617, 77, 70, array( 75 ), 'wvi_corsi_inizio' ), array( wvi_config( 'corsi' )['form'], $wvi_opzioni['wvi_corsi_ultimo'], $wvi_opzioni['wvi_corsi_inizio'], $wvi_opzioni['wvi_corsi_sospese'], wvi_config( 'corsi' )['inizio'] ) );
-uguale( 'Importazione: le altre generali restano', 'https://esempio.it/soci/', wvi_generali()['pagina_soci'] );
 uguale( 'ID del foglio dall\'indirizzo, nudo, non valido', array( '1TvSREeUfoeAcA1uI3Hx9qpytOVUOMQQc5664DqwxUOw', '1TvSREeUfoeAcA1uI3Hx9qpytOVUOMQQc5664DqwxUOw', '' ), array( wvi_id_foglio( 'https://docs.google.com/spreadsheets/d/1TvSREeUfoeAcA1uI3Hx9qpytOVUOMQQc5664DqwxUOw/edit#gid=0' ), wvi_id_foglio( ' 1TvSREeUfoeAcA1uI3Hx9qpytOVUOMQQc5664DqwxUOw ' ), wvi_id_foglio( 'Albo Soci' ) ) );
 
 // Invio: partenza dalle nuove, bozze e spam, punto raggiunto
@@ -684,7 +682,7 @@ uguale( 'Proxy acceso ma richiesta diretta: intestazioni ignorate', '151.20.3.4'
 unset( $_SERVER['REMOTE_ADDR'], $_SERVER['HTTP_X_REAL_IP'] );
 
 // Schema delle impostazioni
-$wvi_tipi = array( 'testo', 'prefisso', 'html', 'area', 'casella', 'numero', 'elenco', 'colonne', 'coppie', 'campo', 'modulo', 'url', 'email', 'mese', 'data', 'segreto', 'foglio' );
+$wvi_tipi = array( 'testo', 'prefisso', 'html', 'area', 'area_html', 'casella', 'numero', 'elenco', 'colonne', 'coppie', 'campo', 'modulo', 'url', 'email', 'mese', 'data', 'segreto', 'foglio' );
 $wvi_male = array();
 $wvi_viste = array();
 foreach ( wvi_schema() as $v ) {
@@ -773,7 +771,8 @@ foreach ( array( false, true ) as $wvi_con_campi ) {
 	$wvi_opzioni['wvi_soci_impostazioni']['token']                = 'segreto-soci';
 	$wvi_opzioni['wvi_soci_impostazioni']['recupera_invito']      = 'Già stato socio? <a>Recupera i tuoi dati</a>';
 	$wvi_opzioni['wvi_corsi_impostazioni']['foglio']              = '1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789';
-	$wvi_opzioni['wvi_corsi_impostazioni']['passaggio_avviso']    = "Due righe\ncon <strong>HTML</strong> & accenti è";
+	$wvi_opzioni['wvi_corsi_impostazioni']['passaggio_avviso']    = "Due righe\ncon la & e gli accenti è";
+	$wvi_opzioni['wvi_soci_impostazioni']['msg_doppio']           = 'Già socio &amp; <a href="mailto:{email}">scrivici</a>';
 	Forminator_API::$campi = $wvi_con_campi ? array(
 		array( 'element_id' => 'text-1', 'field_label' => 'CF', 'type' => 'text' ),
 		array( 'element_id' => 'email-1', 'field_label' => 'Email', 'type' => 'email' ),
@@ -814,6 +813,41 @@ uguale( 'Azione generali: avviso del campo obbligatorio e conferma', array( arra
 uguale( 'Azione regole: conferma con il titolo', array( array( 'success', 'Soci: impostazioni salvate.' ) ), wvi_azione_regole( 'soci', 'campi', array( 'campo_cf' => 'text-1', 'tab_prefisso' => 'X ', 'col_data' => 'Data', 'colonne' => 'Nome = name-1' ) ) );
 uguale( 'Azione riparti: punto raggiunto azzerato', array( 'success', false ), array( wvi_azione_riparti( 'soci' )[0][0], isset( $wvi_opzioni['wvi_soci_ultimo'] ) ) );
 uguale( 'Azioni su un collegamento spento: niente', array( array(), array() ), array( wvi_azione_riparti( 'corsi' ), wvi_azione_mappa( 'soci' ) ) );
+wvi_configura();
+
+// 1.2.1: testi semplici e con HTML, soci da cercare, mappa dei corsi, link verso un'iscrizione non più valida
+wvi_configura();
+wvi_salva( 'soci', 'funzioni', array( 'recupera' => '1', 'recupera_link_testo' => "Soci & amici <b>di</b> {associazione}\n\n{link}" ) );
+wvi_salva( 'soci', 'campi', array( 'campo_cf' => 'text-1', 'msg_doppio' => 'Già soci & <a href="mailto:{email}">scrivici</a>' ) );
+uguale( 'Testo semplice: la & resta, i tag no; nel testo con HTML diventa &amp;', array( "Soci & amici di {associazione}\n\n{link}", 'Già soci &amp; <a href="mailto:{email}">scrivici</a>' ), array( wvi_config( 'soci' )['recupera_link_testo'], wvi_config( 'soci' )['msg_doppio'] ) );
+uguale( 'Soci cercabili: modulo e campo del codice fiscale', array( true, false ), array( wvi_soci_cercabili(), ( function () {
+	global $wvi_opzioni;
+	$wvi_opzioni['wvi_soci_impostazioni']['campo_cf'] = '';
+	return wvi_soci_cercabili();
+} )() ) );
+wvi_configura();
+ob_start();
+wvi_admin_campi();
+$wvi_html = ob_get_clean();
+uguale( 'Pannello: nessun avviso "Riservato ai soci" con i soci configurati', false, strpos( $wvi_html, 'Riservato ai soci" è acceso' ) );
+$wvi_opzioni['wvi_soci_impostazioni']['form'] = 0;
+ob_start();
+wvi_admin_campi();
+uguale( 'Pannello: avviso "Riservato ai soci" senza il modulo dei soci', true, false !== strpos( ob_get_clean(), 'Riservato ai soci" è acceso' ) );
+wvi_configura();
+set_transient( 'wvi_corsi_mappa', array( 'mappa' => array(), 'tab' => array(), 'letta' => 1 ), 60 );
+wvi_azione_regole( 'soci', 'campi', array( 'campo_cf' => 'text-1' ) );
+wvi_azione_regole( 'corsi', 'funzioni', array() );
+$wvi_dopo_altri = null !== wvi_corsi_mappa_copia();
+wvi_azione_regole( 'corsi', 'campi', array( 'campo_corsi' => 'checkbox-1' ) );
+uguale( 'Mappa dei corsi: resta dopo i salvataggi dei soci e del passaggio, scade con Campi e regole dei corsi', array( true, null ), array( $wvi_dopo_altri, wvi_corsi_mappa_copia() ) );
+wvi_configura();
+Forminator_API::$entries = array( (object) array( 'form_id' => 274, 'entry_id' => 40, 'status' => 'abandoned', 'meta_data' => array( 'text-1' => array( 'value' => 'RSSMRA80A01G702Q' ) ) ) );
+set_transient( 'wvi_recupera_' . str_repeat( 'a', 32 ), array( 'form' => 274, 'entry' => 40, 'cf' => 'RSSMRA80A01G702Q' ), 60 );
+uguale( 'Link di recupero verso un\'iscrizione abbandonata: niente dati', null, wvi_recupera_dati( str_repeat( 'a', 32 ) ) );
+Forminator_API::$entries[0]->status = 'active';
+uguale( 'Link di recupero verso un\'iscrizione valida: dati', true, is_array( wvi_recupera_dati( str_repeat( 'a', 32 ) ) ) );
+Forminator_API::$entries = array();
 wvi_configura();
 
 echo $wvi_falliti ? "\n{$wvi_falliti} su {$wvi_totale} controlli falliti.\n" : "{$wvi_totale} controlli superati.\n";
